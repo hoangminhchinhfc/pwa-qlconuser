@@ -169,23 +169,85 @@
     });
   }
 
-  function hienThiUser(userData) {
-    document.getElementById("loginForm").style.display = "none";
-    document.getElementById("userInfo").style.display = "block";
-    document.getElementById("welcomeUser").innerText = "Xin chào: " + userData.UserName;
 
-    let configList = document.getElementById("configInfo");
-    configList.innerHTML = "";
-    if (userData.Config) {
-      for (let key in userData.Config) {
+
+function hienThiUser(userData) {
+  document.getElementById("loginForm").style.display = "none";
+  document.getElementById("userInfo").style.display = "block";
+  document.getElementById("welcomeUser").innerText = "Xin chào: " + userData.UserName;
+
+  let configList = document.getElementById("configInfo");
+  configList.innerHTML = "";
+
+  if (userData.Config) {
+    for (let key in userData.Config) {
+      let value = userData.Config[key];
+
+      if (Array.isArray(value)) {
         let li = document.createElement("li");
-        li.textContent = key + ": " + userData.Config[key];
+        li.innerHTML = `<span style="font-weight:bold; font-size:16px; color:#34495e;">${key}:</span>`;
+
+        let subList = document.createElement("div");
+        subList.style.marginLeft = "15px";
+
+        value.forEach((item, index) => {
+          let gameBox = document.createElement("div");
+          gameBox.style.backgroundColor = "#ffffff";
+          gameBox.style.padding = "10px";
+          gameBox.style.margin = "12px 0";
+          gameBox.style.borderRadius = "12px";
+          gameBox.style.boxShadow = "0 2px 6px rgba(0,0,0,0.08)";
+          gameBox.style.fontFamily = "'Segoe UI', sans-serif";
+
+          let gameTitle = document.createElement("div");
+          gameTitle.textContent = `#${index + 1}`;
+          gameTitle.style.fontWeight = "bold";
+          gameTitle.style.fontSize = "15px";
+          gameTitle.style.marginBottom = "6px";
+          gameTitle.style.color = "#2c3e50";
+          gameBox.appendChild(gameTitle);
+
+          for (let prop in item) {
+            let attrBox = document.createElement("div");
+            attrBox.textContent = `${prop}: ${item[prop]}`;
+            attrBox.style.backgroundColor = "#e8f6ff";
+            attrBox.style.color = "#005a8d";
+            attrBox.style.padding = "6px 10px";
+            attrBox.style.margin = "4px 0";
+            attrBox.style.borderRadius = "6px";
+            attrBox.style.fontSize = "14px";
+            attrBox.style.fontWeight = "500";
+            attrBox.style.transition = "background 0.3s";
+
+            // Hiệu ứng hover
+            attrBox.addEventListener("mouseenter", () => {
+              attrBox.style.backgroundColor = "#cceeff";
+            });
+            attrBox.addEventListener("mouseleave", () => {
+              attrBox.style.backgroundColor = "#e8f6ff";
+            });
+
+            gameBox.appendChild(attrBox);
+          }
+
+          subList.appendChild(gameBox);
+        });
+
+        li.appendChild(subList);
+        configList.appendChild(li);
+      } else {
+        let li = document.createElement("li");
+        li.style.fontFamily = "'Segoe UI', sans-serif";
+        li.style.color = "#2c3e50";
+        li.textContent = `${key}: ${value}`;
         configList.appendChild(li);
       }
-    } else {
-      configList.innerHTML = "<li>Không có thông tin Config</li>";
     }
   }
+}
+
+
+
 
   function dangXuat() {
     localStorage.removeItem("loggedUser");
