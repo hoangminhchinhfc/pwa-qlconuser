@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Quản Lý Con</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #74ebd5, #ACB6E5);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: #fff;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0px 4px 20px rgba(0,0,0,0.2);
+      width: 350px;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    h1, h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      font-weight: bold;
+      margin-bottom: 5px;
+      display: block;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      outline: none;
+      transition: border 0.3s;
+    }
+    input:focus {
+      border-color: #74ebd5;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: linear-gradient(to right, #6a11cb, #2575fc);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: linear-gradient(to right, #2575fc, #6a11cb);
+      transform: scale(1.05);
+    }
+    #ketQua {
+      text-align: center;
+      margin-top: 10px;
+      color: red;
+      font-weight: bold;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    ul li {
+      background: #f1f1f1;
+      margin: 5px 0;
+      padding: 8px;
+      border-radius: 6px;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container" id="loginForm">
+  <h1>🔑 Đăng Nhập</h1>
+  <div class="form-group">
+    <label for="checkUserName">Tên đăng nhập</label>
+    <input type="text" id="checkUserName" placeholder="Nhập username...">
+  </div>
+  <div class="form-group">
+    <label for="checkPassword">Mật khẩu</label>
+    <input type="password" id="checkPassword" placeholder="Nhập password...">
+  </div>
+  <button onclick="dangNhapTuFirebase()">Đăng nhập</button>
+  <p id="ketQua"></p>
+</div>
+
+<div class="container" id="userInfo" style="display:none;">
+  <h2 id="welcomeUser"></h2>
+  <h3>⚙ Thông tin Config</h3>
+  <ul id="configInfo"></ul>
+  <button onclick="dangXuat()">🚪 Đăng xuất</button>
+<h3></h3>
+<button id="a2hsBtn" >
+  📲 Thêm vào màn hình chính
+</button>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+  var firebaseConfig = {
+    apiKey: "AIzaSyCoOFo_pN6dvjJr_PDx88VULeGXh0pj3xU",
+    authDomain: "myqlcon.firebaseapp.com",
+    databaseURL: "https://myqlcon-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "myqlcon",
+    storageBucket: "myqlcon.appspot.com",
+    messagingSenderId: "115813241978",
+    appId: "1:115813241978:web:2a2567a437dd7c684857c3"
+  };
+  firebase.initializeApp(firebaseConfig);
+  var usersRef = firebase.database().ref("users");
+
+  document.addEventListener("DOMContentLoaded", function() {
+    let loggedUser = localStorage.getItem("loggedUser");
+    if (loggedUser) {
+      loggedUser = JSON.parse(loggedUser);
+      hienThiUser(loggedUser);
+    }
+  });
+
+  function dangNhapTuFirebase() {
+    var inputUser = document.getElementById("checkUserName").value.trim();
+    var inputPass = document.getElementById("checkPassword").value.trim();
+    var ketQuaElem = document.getElementById("ketQua");
+
+    if (!inputUser || !inputPass) {
+      ketQuaElem.innerText = "⚠ Vui lòng nhập đầy đủ thông tin.";
+      return;
+    }
+
+    var query = usersRef.orderByChild("UserName").equalTo(inputUser);
+    query.once("value", function(snapshot) {
+      if (!snapshot.exists()) {
+        ketQuaElem.innerText = "❌ Sai username hoặc password!";
+      } else {
+        let found = false;
+        snapshot.forEach(function(childSnapshot) {
+          var userData = childSnapshot.val();
+          if (userData.Password === inputPass) {
+            localStorage.setItem("loggedUser", JSON.stringify(userData));
+            hienThiUser(userData);
+            found = true;
+          }
+        });
+        if (!found) {
+          ketQuaElem.innerText = "❌ Sai username hoặc password!";
+        }
+      }
+    });
+  }
+
+  function hienThiUser(userData) {
+    document.getElementById("loginForm").style.display = "none";
+    document.getElementById("userInfo").style.display = "block";
+    document.getElementById("welcomeUser").innerText = "Xin chào: " + userData.UserName;
+
+    let configList = document.getElementById("configInfo");
+    configList.innerHTML = "";
+    if (userData.Config) {
+      for (let key in userData.Config) {
+        let li = document.createElement("li");
+        li.textContent = key + ": " + userData.Config[key];
+        configList.appendChild(li);
+      }
+    } else {
+      configList.innerHTML = "<li>Không có thông tin Config</li>";
+    }
+  }
+
+  function dangXuat() {
+    localStorage.removeItem("loggedUser");
+    document.getElementById("loginForm").style.display = "block";
+    document.getElementById("userInfo").style.display = "none";
+  }
+</script>
+<script>
+  let deferredPrompt;
+
+  // Lắng nghe sự kiện beforeinstallprompt
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+
+    const btn = document.getElementById('a2hsBtn');
+    btn.style.display = 'block';
+
+    btn.addEventListener('click', () => {
+      // Gọi hộp thoại cài đặt
+      deferredPrompt.prompt();
+
+      // Chờ người dùng phản hồi
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('✅ Người dùng đã chấp nhận A2HS');
+        } else {
+          console.log('❌ Người dùng đã từ chối A2HS');
+        }
+        deferredPrompt = null;
+        btn.style.display = 'none';
+      });
+    });
+  });
+</script>
+</body>
+</html>
