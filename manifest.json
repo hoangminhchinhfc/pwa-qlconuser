@@ -1,6 +1,6 @@
 
 {
-  "name": "Ứng dụng PWA Đơn Giản",
+  "name": "Ứng dụng Quản Lý Hoạt Động Máy Tính Từ Xa",
   "short_name": "PWA",
   "start_url": "index.html",
   "display": "standalone",
