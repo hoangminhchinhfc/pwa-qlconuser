@@ -113,6 +113,9 @@
 
 
 <div class="container" id="userInfo" style="display:none;">
+<div>
+    <button id="btnCapNhat">Cập nhật</button>
+</div>
   <ul id="configInfo"></ul>
   <button onclick="dangXuat()">🚪 Đăng xuất</button>
 <h3></h3>
@@ -134,62 +137,107 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
-  var firebaseConfig = {
-    apiKey: "AIzaSyCoOFo_pN6dvjJr_PDx88VULeGXh0pj3xU",
-    authDomain: "myqlcon.firebaseapp.com",
-    databaseURL: "https://myqlcon-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "myqlcon",
-    storageBucket: "myqlcon.appspot.com",
-    messagingSenderId: "115813241978",
-    appId: "1:115813241978:web:2a2567a437dd7c684857c3"
-  };
-  firebase.initializeApp(firebaseConfig);
-  var usersRef = firebase.database().ref("users");
+ var firebaseConfig = {
+  apiKey: "AIzaSyCoOFo_pN6dvjJr_PDx88VULeGXh0pj3xU",
+  authDomain: "myqlcon.firebaseapp.com",
+  databaseURL: "https://myqlcon-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "myqlcon",
+  storageBucket: "myqlcon.appspot.com",
+  messagingSenderId: "115813241978",
+  appId: "1:115813241978:web:2a2567a437dd7c684857c3"
+};
+firebase.initializeApp(firebaseConfig);
+var usersRef = firebase.database().ref("users");
 
-  document.addEventListener("DOMContentLoaded", function() {
-    let loggedUser = localStorage.getItem("loggedUser");
-    if (loggedUser) {
-      loggedUser = JSON.parse(loggedUser);
-      hienThiUser(loggedUser);
-      hienThiConfigUser(loggedUser);
-    }
-  });
+let currentUserRef = null; // Biến giữ ref realtime của user đang đăng nhập
 
-  function dangNhapTuFirebase() {
-    var inputUser = document.getElementById("checkUserName").value.trim();
-    var inputPass = document.getElementById("checkPassword").value.trim();
-    var ketQuaElem = document.getElementById("ketQua");
+document.addEventListener("DOMContentLoaded", function() {
+  let loggedUser = localStorage.getItem("loggedUser");
+  if (loggedUser) {
+    loggedUser = JSON.parse(loggedUser);
+    hienThiUser(loggedUser);
 
-    if (!inputUser || !inputPass) {
-      ketQuaElem.innerText = "⚠ Vui lòng nhập đầy đủ thông tin.";
-      return;
-    }
-
-    var query = usersRef.orderByChild("UserName").equalTo(inputUser);
-    query.once("value", function(snapshot) {
-      if (!snapshot.exists()) {
-        ketQuaElem.innerText = "❌ Sai username hoặc password!";
-      } else {
-        let found = false;
+    // Tạo listener realtime cho user đã đăng nhập lúc trước
+    if (loggedUser && loggedUser.UserName) {
+      // Tìm key user bằng UserName
+      usersRef.orderByChild("UserName").equalTo(loggedUser.UserName).once("value", function(snapshot) {
         snapshot.forEach(function(childSnapshot) {
-          var userData = childSnapshot.val();
-          if (userData.Password === inputPass) {
-            localStorage.setItem("loggedUser", JSON.stringify(userData));
-                  hienThiUser(loggedUser);
-      hienThiConfigUser(loggedUser);
-            found = true;
-          }
+          // Tạo listener realtime với key này
+          listenUserRealtime(childSnapshot.key);
         });
-        if (!found) {
-          ketQuaElem.innerText = "❌ Sai username hoặc password!";
-        }
-      }
-    });
+      });
+    }
+  }
+});
+
+function dangNhapTuFirebase() {
+  var inputUser = document.getElementById("checkUserName").value.trim();
+  var inputPass = document.getElementById("checkPassword").value.trim();
+  var ketQuaElem = document.getElementById("ketQua");
+
+  if (!inputUser || !inputPass) {
+    ketQuaElem.innerText = "⚠ Vui lòng nhập đầy đủ thông tin.";
+    return;
   }
 
+  var query = usersRef.orderByChild("UserName").equalTo(inputUser);
+  query.once("value", function(snapshot) {
+    if (!snapshot.exists()) {
+      ketQuaElem.innerText = "❌ Sai username hoặc password!";
+    } else {
+      let found = false;
+      snapshot.forEach(function(childSnapshot) {
+        var userData = childSnapshot.val();
+        if (userData.Password === inputPass) {
+          ketQuaElem.innerText = "";
 
+          // Lưu vào localStorage
+          localStorage.setItem("loggedUser", JSON.stringify(userData));
 
-// Chỉ hiển thị tên User
+          // Ẩn form đăng nhập, hiện phần user info
+          document.getElementById("loginForm").style.display = "none";
+          document.getElementById("userInfo").style.display = "block";
+
+          hienThiUser(userData);
+
+          // Nếu trước đó có listener realtime thì tắt đi (nếu có)
+          if (currentUserRef) {
+            currentUserRef.off();
+          }
+
+          // Tạo listener realtime dữ liệu user để tự cập nhật UI khi dữ liệu thay đổi
+          listenUserRealtime(childSnapshot.key);
+
+          found = true;
+        }
+      });
+
+      if (!found) {
+        ketQuaElem.innerText = "❌ Sai username hoặc password!";
+      }
+    }
+  });
+}
+
+// Hàm tạo listener realtime cho user theo key
+function listenUserRealtime(userKey) {
+  if (currentUserRef) {
+    // Nếu đã có listener trước đó thì tắt đi để tránh trùng
+    currentUserRef.off();
+  }
+  currentUserRef = usersRef.child(userKey);
+  currentUserRef.on("value", function(snapshot) {
+    var updatedUserData = snapshot.val();
+    if (updatedUserData) {
+      // Cập nhật lại UI khi có thay đổi dữ liệu
+      hienThiConfigUser(updatedUserData);
+
+      // Cập nhật localStorage lưu user mới nhất
+      localStorage.setItem("loggedUser", JSON.stringify(updatedUserData));
+    }
+  });
+}
+
 function hienThiUser(userData) {
   document.getElementById("loginForm").style.display = "none";
   document.getElementById("userInfo").style.display = "block";
@@ -210,7 +258,6 @@ function hienThiUser(userData) {
   setTimeout(() => (welcomeEl.style.opacity = "1"), 50);
 }
 
-// Hiển thị cấu hình User
 function hienThiConfigUser(userData) {
   let configList = document.getElementById("configInfo");
   configList.innerHTML = "";
@@ -222,7 +269,8 @@ function hienThiConfigUser(userData) {
     MaxLaunchesPerDay: "Giới hạn số lần SD 1 ngày",
     MaxMinutes: "Thời gian Max SD 1 lần",
     Name: "Tên phần mềm",
-    UsedMinutesToday: "Tổng thời gian sử dụng hôm nay"
+    UsedMinutesToday: "Tổng thời gian sử dụng hôm nay",
+    TempStop: "Tạm dừng"
   };
 
   if (userData.Config) {
@@ -244,7 +292,7 @@ function hienThiConfigUser(userData) {
           gameBox.style.borderRadius = "12px";
           gameBox.style.boxShadow = "0 2px 6px rgba(0,0,0,0.08)";
           gameBox.style.fontFamily = "'Segoe UI', sans-serif";
-          gameBox.style.opacity = "0"; // fade-in
+          gameBox.style.opacity = "0";
           gameBox.style.transition = "opacity 0.5s ease-in-out";
 
           let gameTitle = document.createElement("div");
@@ -274,19 +322,101 @@ function hienThiConfigUser(userData) {
             span.textContent = label + ":";
             span.style.flex = "1";
 
-            let input = document.createElement("input");
-            input.value = item[prop];
-            input.style.flex = "1";
-            input.style.marginLeft = "10px";
-            input.style.border = "1px solid #ccc";
-            input.style.borderRadius = "4px";
-            input.style.padding = "4px 6px";
-            input.style.fontSize = "14px";
+            let valSpan = document.createElement("span");
+            valSpan.textContent = item[prop];
+            valSpan.style.flex = "1";
+            valSpan.style.marginLeft = "10px";
 
             attrBox.appendChild(span);
-            attrBox.appendChild(input);
+            attrBox.appendChild(valSpan);
             gameBox.appendChild(attrBox);
           }
+// Tạo container chứa các nút
+let btnContainer = document.createElement("div");
+btnContainer.style.display = "flex";
+btnContainer.style.gap = "8px"; // khoảng cách giữa các nút
+btnContainer.style.marginTop = "8px";
+          // ================= Nút Cập nhật =================
+          let updateBtn = document.createElement("button");
+          updateBtn.textContent = "Cập nhật";
+          updateBtn.id = `update_${key}_${index}`;
+          updateBtn.style.marginTop = "8px";
+          updateBtn.style.padding = "6px 12px";
+          updateBtn.style.backgroundColor = "#27ae60";
+          updateBtn.style.color = "#fff";
+          updateBtn.style.border = "none";
+          updateBtn.style.borderRadius = "6px";
+          updateBtn.style.cursor = "pointer";
+
+          updateBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            const params = new URLSearchParams({
+              uid: userData.UserName,
+              key: key,
+              index: index
+            });
+            window.location.href = `update.html?${params.toString()}`;
+          });
+
+          // ================= Nút Xóa game =================
+          let deleteBtn = document.createElement("button");
+          deleteBtn.textContent = "Xóa Game";
+          deleteBtn.id = `delete_${key}_${index}`;
+          deleteBtn.style.marginTop = "8px";
+          deleteBtn.style.marginLeft = "8px";
+          deleteBtn.style.padding = "6px 12px";
+          deleteBtn.style.backgroundColor = "#e74c3c";
+          deleteBtn.style.color = "#fff";
+          deleteBtn.style.border = "none";
+          deleteBtn.style.borderRadius = "6px";
+          deleteBtn.style.cursor = "pointer";
+
+          deleteBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            if (confirm("Bạn có chắc muốn xóa game này không?")) {
+              firebase.database()
+                .ref(`/users/${userData.UserName}/Config/${key}/${index}`)
+                .remove()
+                .then(() => {
+                  alert("Xóa game thành công!");
+                  location.reload();
+                })
+                .catch(err => alert("Lỗi khi xóa: " + err.message));
+            }
+          });
+
+          // ================= Nút Dừng Ngay =================
+          let stopBtn = document.createElement("button");
+          stopBtn.textContent = "Dừng Ngay";
+          stopBtn.id = `stop_${key}_${index}`;
+          stopBtn.style.marginTop = "8px";
+          stopBtn.style.marginLeft = "8px";
+          stopBtn.style.padding = "6px 12px";
+          stopBtn.style.backgroundColor = "#f39c12";
+          stopBtn.style.color = "#fff";
+          stopBtn.style.border = "none";
+          stopBtn.style.borderRadius = "6px";
+          stopBtn.style.cursor = "pointer";
+
+          stopBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            firebase.database()
+              .ref(`/users/${userData.UserName}/Config/${key}/${index}`)
+              .update({ TempStop: true })
+              .then(() => {
+                alert("Đã đặt Dừng Ngay!");
+                location.reload();
+              })
+              .catch(err => alert("Lỗi khi cập nhật: " + err.message));
+          });
+
+// Thêm các nút vào container
+btnContainer.appendChild(updateBtn);
+btnContainer.appendChild(deleteBtn);
+btnContainer.appendChild(stopBtn);
+
+// Thêm container nút vào gameBox
+gameBox.appendChild(btnContainer);
 
           subList.appendChild(gameBox);
           setTimeout(() => (gameBox.style.opacity = "1"), 50 + index * 100);
@@ -306,39 +436,46 @@ function hienThiConfigUser(userData) {
 }
 
 
-  function dangXuat() {
-    localStorage.removeItem("loggedUser");
-    document.getElementById("loginForm").style.display = "block";
-    document.getElementById("userInfo").style.display = "none";
-  }
-</script>
-<script>
-  let deferredPrompt;
+// Hàm cập nhật dữ liệu lên Firebase
+function capNhatConfig(key, index, updatedData) {
+  const refPath = `users/${currentUserId}/Config/${key}/${index}`;
 
-  // Lắng nghe sự kiện beforeinstallprompt
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-
-    const btn = document.getElementById('a2hsBtn');
-    btn.style.display = 'block';
-
-    btn.addEventListener('click', () => {
-      // Gọi hộp thoại cài đặt
-      deferredPrompt.prompt();
-
-      // Chờ người dùng phản hồi
-      deferredPrompt.userChoice.then((choiceResult) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('✅ Người dùng đã chấp nhận A2HS');
-        } else {
-          console.log('❌ Người dùng đã từ chối A2HS');
-        }
-        deferredPrompt = null;
-        btn.style.display = 'none';
-      });
+  firebase.database()
+    .ref(refPath)
+    .update(updatedData)
+    .then(() => {
+      const successMsg = `
+✅ Cập nhật thành công!
+📂 Đường dẫn: ${refPath}
+📦 Dữ liệu mới: ${JSON.stringify(updatedData, null, 2)}
+      `;
+      console.log(successMsg); // in ra console
+      alert(successMsg);       // hiển thị popup
+    })
+    .catch((error) => {
+      const errorMsg = `
+❌ Lỗi khi cập nhật
+📂 Đường dẫn: ${refPath}
+📄 Lỗi: ${error.message}
+      `;
+      console.error(errorMsg);
+      alert(errorMsg);
     });
-  });
+}
+
+ 
+function dangXuat() {
+  // Tắt listener realtime khi đăng xuất
+  if (currentUserRef) {
+    currentUserRef.off();
+    currentUserRef = null;
+  }
+
+  localStorage.removeItem("loggedUser");
+  document.getElementById("loginForm").style.display = "block";
+  document.getElementById("userInfo").style.display = "none";
+}
+
 </script>
   <script src="script.js"></script>
 </body>
