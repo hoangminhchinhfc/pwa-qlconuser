@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Cập nhật Config</title>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f7fa;
+    margin: 0;
+    padding: 0;
+  }
+  .container {
+    max-width: 500px;
+    background: #fff;
+    margin: 40px auto;
+    padding: 25px 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #2c3e50;
+  }
+  label {
+    font-weight: bold;
+    display: block;
+    margin-top: 12px;
+    color: #34495e;
+  }
+  input {
+    margin-top: 5px;
+    padding: 8px 10px;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #ccd1d9;
+    border-radius: 6px;
+    outline: none;
+    transition: 0.3s;
+  }
+  input:focus {
+    border-color: #27ae60;
+    box-shadow: 0 0 4px rgba(39, 174, 96, 0.4);
+  }
+  button {
+    padding: 10px 15px;
+    margin-top: 20px;
+    background: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+    font-size: 16px;
+    transition: 0.3s;
+  }
+  button:hover {
+    background: #219150;
+  }
+  .error {
+    color: #e74c3c;
+    text-align: center;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h2>🔧 Cập nhật Config</h2>
+  <div id="formArea">Đang tải dữ liệu...</div>
+</div>
+
+<script>
+ // Cấu hình Firebase
+ var firebaseConfig = {
+    apiKey: "AIzaSyCoOFo_pN6dvjJr_PDx88VULeGXh0pj3xU",
+    authDomain: "myqlcon.firebaseapp.com",
+    databaseURL: "https://myqlcon-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "myqlcon",
+    storageBucket: "myqlcon.appspot.com",
+    messagingSenderId: "115813241978",
+    appId: "1:115813241978:web:2a2567a437dd7c684857c3"
+ };
+ firebase.initializeApp(firebaseConfig);
+
+ // Lấy tham số từ URL
+ const urlParams = new URLSearchParams(window.location.search);
+ const uid   = urlParams.get("uid");
+ const key   = urlParams.get("key");
+ const index = urlParams.get("index");
+
+ const formArea = document.getElementById("formArea");
+
+ if (!uid) {
+    formArea.innerHTML = `<div class="error">❌ Không tìm thấy User ID!</div>`;
+    throw new Error("User ID missing");
+ }
+
+ if (!key || index === null) {
+    formArea.innerHTML = `<div class="error">❌ Thiếu tham số key hoặc index!</div>`;
+    throw new Error("Key/Index missing");
+ }
+
+ // Đường dẫn trong Firebase
+ const refPath = `users/${uid}/Config/${key}/${index}`;
+
+ // Lấy dữ liệu từ Firebase
+ firebase.database().ref(refPath).once("value").then(snapshot => {
+    const data = snapshot.val();
+    if (!data) {
+      formArea.innerHTML = `<div class="error">❌ Không tìm thấy dữ liệu.</div>`;
+      return;
+    }
+
+    // Xóa nội dung cũ
+    formArea.innerHTML = "";
+    const inputs = {};
+
+    // Tạo input cho từng thuộc tính
+    for (let prop in data) {
+      const label = document.createElement("label");
+      label.textContent = prop;
+
+      const input = document.createElement("input");
+      input.value = data[prop];
+      inputs[prop] = input;
+
+      formArea.appendChild(label);
+      formArea.appendChild(input);
+    }
+
+    // Nút lưu
+    const saveBtn = document.createElement("button");
+    saveBtn.textContent = "💾 Lưu thay đổi";
+    saveBtn.onclick = () => {
+      const updatedData = {};
+      for (let prop in inputs) {
+        updatedData[prop] = inputs[prop].value;
+      }
+      firebase.database().ref(refPath).update(updatedData).then(() => {
+        saveBtn.textContent = "✅ Đã cập nhật thành công!";
+        saveBtn.style.background = "#2ecc71";
+        setTimeout(() => {
+          window.location.href = "./";
+        }, 1500);
+      }).catch(err => {
+        saveBtn.textContent = "❌ Lỗi: " + err.message;
+        saveBtn.style.background = "#e74c3c";
+      });
+    };
+
+    formArea.appendChild(saveBtn);
+ });
+</script>
+
+</body>
+</html>
