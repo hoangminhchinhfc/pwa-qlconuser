@@ -8,14 +8,15 @@
   <title>Quản Lý Con - Người Dùng </title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(to right, #74ebd5, #ACB6E5);
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+   font-family: Arial, sans-serif;
+  background: linear-gradient(to right, #74ebd5, #ACB6E5);
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column; /* sắp xếp theo cột */
+  justify-content: flex-start; /* bắt đầu từ trên xuống */
+  align-items: center; /* vẫn giữ căn giữa ngang */
+  min-height: 100vh;
     }
     .container {
       background: #fff;
@@ -102,9 +103,16 @@
   <p id="ketQua"></p>
 </div>
 
-<div class="container" id="userInfo" style="display:none;">
-  <h2 id="welcomeUser"></h2>
+
+
+ <div class="container"  >
+  <div id="welcomeUser" style="margin-bottom:15px; font-weight:bold; font-size:18px; color:#2c3e50;"></div>
   <h3>⚙ Thông tin Config</h3>
+<h2> Danh Sách các chương trình bị giới hạn thời gian </h2>
+</div>
+
+
+<div class="container" id="userInfo" style="display:none;">
   <ul id="configInfo"></ul>
   <button onclick="dangXuat()">🚪 Đăng xuất</button>
 <h3></h3>
@@ -114,6 +122,14 @@
 
 </div>
 
+
+
+
+
+
+
+
+ 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
@@ -135,6 +151,7 @@
     if (loggedUser) {
       loggedUser = JSON.parse(loggedUser);
       hienThiUser(loggedUser);
+      hienThiConfigUser(loggedUser);
     }
   });
 
@@ -158,7 +175,8 @@
           var userData = childSnapshot.val();
           if (userData.Password === inputPass) {
             localStorage.setItem("loggedUser", JSON.stringify(userData));
-            hienThiUser(userData);
+                  hienThiUser(loggedUser);
+      hienThiConfigUser(loggedUser);
             found = true;
           }
         });
@@ -171,13 +189,41 @@
 
 
 
+// Chỉ hiển thị tên User
 function hienThiUser(userData) {
   document.getElementById("loginForm").style.display = "none";
   document.getElementById("userInfo").style.display = "block";
-  document.getElementById("welcomeUser").innerText = "Xin chào: " + userData.UserName;
 
+  let welcomeEl = document.getElementById("welcomeUser");
+  if (!welcomeEl) {
+    welcomeEl = document.createElement("h2");
+    welcomeEl.id = "welcomeUser";
+    welcomeEl.style.fontFamily = "'Segoe UI', sans-serif";
+    welcomeEl.style.fontWeight = "600";
+    welcomeEl.style.color = "#8e44ad";
+    welcomeEl.style.marginBottom = "15px";
+    welcomeEl.style.opacity = "0"; // fade-in
+    welcomeEl.style.transition = "opacity 0.5s ease-in-out";
+    document.getElementById("userInfo").prepend(welcomeEl);
+  }
+  welcomeEl.textContent = "Xin chào: " + userData.UserName;
+  setTimeout(() => (welcomeEl.style.opacity = "1"), 50);
+}
+
+// Hiển thị cấu hình User
+function hienThiConfigUser(userData) {
   let configList = document.getElementById("configInfo");
   configList.innerHTML = "";
+
+  const propLabels = {
+    CooldownMinutes: "Thời gian chờ SD lại",
+    CurrentSessionMinutes: "Thời gian SD hiện tại",
+    LaunchesToday: "Số lần SD hôm nay",
+    MaxLaunchesPerDay: "Giới hạn số lần SD 1 ngày",
+    MaxMinutes: "Thời gian Max SD 1 lần",
+    Name: "Tên phần mềm",
+    UsedMinutesToday: "Tổng thời gian sử dụng hôm nay"
+  };
 
   if (userData.Config) {
     for (let key in userData.Config) {
@@ -198,6 +244,8 @@ function hienThiUser(userData) {
           gameBox.style.borderRadius = "12px";
           gameBox.style.boxShadow = "0 2px 6px rgba(0,0,0,0.08)";
           gameBox.style.fontFamily = "'Segoe UI', sans-serif";
+          gameBox.style.opacity = "0"; // fade-in
+          gameBox.style.transition = "opacity 0.5s ease-in-out";
 
           let gameTitle = document.createElement("div");
           gameTitle.textContent = `#${index + 1}`;
@@ -209,7 +257,6 @@ function hienThiUser(userData) {
 
           for (let prop in item) {
             let attrBox = document.createElement("div");
-            attrBox.textContent = `${prop}: ${item[prop]}`;
             attrBox.style.backgroundColor = "#e8f6ff";
             attrBox.style.color = "#005a8d";
             attrBox.style.padding = "6px 10px";
@@ -217,20 +264,32 @@ function hienThiUser(userData) {
             attrBox.style.borderRadius = "6px";
             attrBox.style.fontSize = "14px";
             attrBox.style.fontWeight = "500";
-            attrBox.style.transition = "background 0.3s";
+            attrBox.style.display = "flex";
+            attrBox.style.alignItems = "center";
+            attrBox.style.justifyContent = "space-between";
 
-            // Hiệu ứng hover
-            attrBox.addEventListener("mouseenter", () => {
-              attrBox.style.backgroundColor = "#cceeff";
-            });
-            attrBox.addEventListener("mouseleave", () => {
-              attrBox.style.backgroundColor = "#e8f6ff";
-            });
+            let label = propLabels[prop] || prop;
 
+            let span = document.createElement("span");
+            span.textContent = label + ":";
+            span.style.flex = "1";
+
+            let input = document.createElement("input");
+            input.value = item[prop];
+            input.style.flex = "1";
+            input.style.marginLeft = "10px";
+            input.style.border = "1px solid #ccc";
+            input.style.borderRadius = "4px";
+            input.style.padding = "4px 6px";
+            input.style.fontSize = "14px";
+
+            attrBox.appendChild(span);
+            attrBox.appendChild(input);
             gameBox.appendChild(attrBox);
           }
 
           subList.appendChild(gameBox);
+          setTimeout(() => (gameBox.style.opacity = "1"), 50 + index * 100);
         });
 
         li.appendChild(subList);
@@ -239,14 +298,12 @@ function hienThiUser(userData) {
         let li = document.createElement("li");
         li.style.fontFamily = "'Segoe UI', sans-serif";
         li.style.color = "#2c3e50";
-        li.textContent = `${key}: ${value}`;
+        li.textContent = `${propLabels[key] || key}: ${value}`;
         configList.appendChild(li);
       }
     }
   }
 }
-
-
 
 
   function dangXuat() {
