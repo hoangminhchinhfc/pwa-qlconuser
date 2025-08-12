@@ -386,29 +386,62 @@ btnContainer.style.marginTop = "8px";
           });
 
           // ================= Nút Dừng Ngay =================
-          let stopBtn = document.createElement("button");
-          stopBtn.textContent = "Dừng Ngay";
-          stopBtn.id = `stop_${key}_${index}`;
-          stopBtn.style.marginTop = "8px";
-          stopBtn.style.marginLeft = "8px";
-          stopBtn.style.padding = "6px 12px";
-          stopBtn.style.backgroundColor = "#f39c12";
-          stopBtn.style.color = "#fff";
-          stopBtn.style.border = "none";
-          stopBtn.style.borderRadius = "6px";
-          stopBtn.style.cursor = "pointer";
+      // ================= Nút Dừng Ngay / Chạy Lại =================
+let stopBtn = document.createElement("button");
+stopBtn.id = `stop_${key}_${index}`;
+stopBtn.style.marginTop = "8px";
+stopBtn.style.marginLeft = "8px";
+stopBtn.style.padding = "6px 12px";
+stopBtn.style.border = "none";
+stopBtn.style.borderRadius = "6px";
+stopBtn.style.cursor = "pointer";
+stopBtn.style.color = "#fff";
 
-          stopBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            firebase.database()
-              .ref(`/users/${userData.UserName}/Config/${key}/${index}`)
-              .update({ TempStop: true })
-              .then(() => {
-                alert("Đã đặt Dừng Ngay!");
-                location.reload();
-              })
-              .catch(err => alert("Lỗi khi cập nhật: " + err.message));
-          });
+// Lấy trạng thái ban đầu
+let isStopped = item.TempStop === true;
+capNhatNut(stopBtn, isStopped);
+
+// Hàm cập nhật nút
+function capNhatNut(button, isStopped) {
+  if (isStopped) {
+    button.textContent = "Chạy lại";
+    button.style.backgroundColor = "#2980b9"; // xanh
+  } else {
+    button.textContent = "Dừng ngay";
+    button.style.backgroundColor = "#c0392b"; // đỏ
+  }
+}
+
+// Sự kiện click
+stopBtn.addEventListener("click", async (e) => {
+  e.preventDefault();
+  if (!isStopped) {
+    // Dừng game
+    await firebase.database()
+      .ref(`/users/${userData.UserName}/Config/${key}/${index}/TempStop`)
+      .set(true);
+    isStopped = true;
+    capNhatNut(stopBtn, true);
+
+    // Tự bật lại sau 30 phút
+    setTimeout(async () => {
+      await firebase.database()
+        .ref(`/users/${userData.UserName}/Config/${key}/${index}/TempStop`)
+        .set(false);
+      isStopped = false;
+      capNhatNut(stopBtn, false);
+    }, 30 * 60 * 1000);
+
+  } else {
+    // Cho chạy lại ngay
+    await firebase.database()
+      .ref(`/users/${userData.UserName}/Config/${key}/${index}/TempStop`)
+      .set(false);
+    isStopped = false;
+    capNhatNut(stopBtn, false);
+  }
+});
+
 
 // Thêm các nút vào container
 btnContainer.appendChild(updateBtn);
@@ -478,5 +511,37 @@ function dangXuat() {
 
 </script>
   <script src="script.js"></script>
+
+ <!-- ✅ Script xử lý A2HS -->
+  <script>
+    let deferredPrompt;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Ngăn trình duyệt hiển thị banner mặc định
+      e.preventDefault();
+      deferredPrompt = e;
+
+      // Hiện nút
+      const btn = document.getElementById('a2hsBtn');
+      btn.style.display = 'inline-block';
+
+      btn.addEventListener('click', () => {
+        // Hiện hộp thoại cài đặt
+        deferredPrompt.prompt();
+
+        // Chờ người dùng phản hồi
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('✅ Người dùng đã chấp nhận A2HS');
+          } else {
+            console.log('❌ Người dùng đã từ chối A2HS');
+          }
+          deferredPrompt = null;
+        });
+      });
+    });
+  </script>
+
+
 </body>
 </html>
