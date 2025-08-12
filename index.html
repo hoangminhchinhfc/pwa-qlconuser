@@ -6,86 +6,114 @@
   <meta name="theme-color" content="#317EFB"/>
   <link rel="manifest" href="manifest.json">
   <title>Quản Lý Con - Người Dùng </title>
-  <style>
-    body {
-   font-family: Arial, sans-serif;
-  background: linear-gradient(to right, #74ebd5, #ACB6E5);
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column; /* sắp xếp theo cột */
-  justify-content: flex-start; /* bắt đầu từ trên xuống */
-  align-items: center; /* vẫn giữ căn giữa ngang */
-  min-height: 100vh;
-    }
-    .container {
-      background: #fff;
-      padding: 25px;
-      border-radius: 15px;
-      box-shadow: 0px 4px 20px rgba(0,0,0,0.2);
-      width: 350px;
-      animation: fadeIn 0.5s ease-in-out;
-    }
-    h1, h2 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #333;
-    }
-    .form-group {
-      margin-bottom: 15px;
-    }
-    label {
-      font-weight: bold;
-      margin-bottom: 5px;
-      display: block;
-    }
-    input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      outline: none;
-      transition: border 0.3s;
-    }
-    input:focus {
-      border-color: #74ebd5;
-    }
-    button {
-      width: 100%;
-      padding: 10px;
-      background: linear-gradient(to right, #6a11cb, #2575fc);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-    button:hover {
-      background: linear-gradient(to right, #2575fc, #6a11cb);
-      transform: scale(1.05);
-    }
-    #ketQua {
-      text-align: center;
-      margin-top: 10px;
-      color: red;
-      font-weight: bold;
-    }
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-    ul li {
-      background: #f1f1f1;
-      margin: 5px 0;
-      padding: 8px;
-      border-radius: 6px;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-  </style>
+ <style>
+  body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #74ebd5, #ACB6E5);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column; /* sắp xếp theo cột */
+    align-items: center; /* căn giữa ngang */
+    min-height: 100vh;
+  }
+
+  .container {
+    background: #fff;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    width: 360px;
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  h1, h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #2d3436;
+  }
+
+  .form-group {
+    margin-bottom: 15px;
+  }
+
+  label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: block;
+    color: #555;
+  }
+
+  input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    outline: none;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    background: #fdfdfd;
+  }
+
+  input:focus {
+    border-color: #6a11cb;
+    box-shadow: 0 0 5px rgba(106, 17, 203, 0.3);
+  }
+
+  button {
+    padding: 10px;
+    background: linear-gradient(90deg, #6a11cb, #2575fc);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  button:hover {
+    background: linear-gradient(90deg, #2575fc, #6a11cb);
+    transform: scale(1.05);
+  }
+
+  /* Nút trên cùng 1 hàng */
+  .button-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+  }
+
+  .button-row button {
+    flex: 1; /* Mỗi nút rộng đều nhau */
+  }
+
+  #ketQua {
+    text-align: center;
+    margin-top: 10px;
+    color: #e84118;
+    font-weight: bold;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  ul li {
+    background: #f7f9fa;
+    margin: 5px 0;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #eee;
+    font-size: 14px;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+
 </head>
 <body>
 
@@ -113,17 +141,31 @@
 
 
 <div class="container" id="userInfo" style="display:none;">
-<div>
-    <button id="btnCapNhat">Cập nhật</button>
-</div>
+
+  <div style="display: flex; gap: 10px;">
+      <button id="btnDungPC">Dừng Máy Tính Từ Xa</button>
+      <button id="btnChat">Nói Chuyện với Máy Con</button>
+  </div>
+
   <ul id="configInfo"></ul>
-  <button onclick="dangXuat()">🚪 Đăng xuất</button>
-<h3></h3>
-<button id="a2hsBtn" >
-  📲 Thêm vào màn hình chính
-</button>
+
+  <!-- Nút ở giữa -->
+  <div style="text-align: center; margin-top: 15px;">
+      <button onclick="dangXuat()" style="width: auto; min-width: 140px;">
+        🚪 Đăng xuất
+      </button>
+  </div>
+
+  <h3></h3>
+
+  <div style="text-align: center; margin-top: 10px;">
+      <button id="a2hsBtn" style="width: auto; min-width: 200px;">
+        📲 Thêm vào màn hình chính
+      </button>
+  </div>
 
 </div>
+
 
 
 
