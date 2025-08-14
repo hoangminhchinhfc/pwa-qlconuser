@@ -120,7 +120,7 @@
 <div class="container" id="loginForm">
   <h1>🔑 Đăng Nhập</h1>
   <div class="form-group">
-    <label for="checkUserName">Tên đăng nhập</label>
+    <label for="checkUserName">Email Đăng Nhập</label>
     <input type="text" id="checkUserName" placeholder="Nhập username...">
   </div>
   <div class="form-group">
@@ -143,7 +143,7 @@
 <div class="container" id="userInfo" style="display:none;">
 
   <div style="display: flex; gap: 10px;">
-      <button id="btnDungPC">Dừng Máy Tính Từ Xa</button>
+      <button id="btnStopPC">Tắt Máy Tính Từ Xa</button>
       <button id="btnChat">Nói Chuyện với Máy Con</button>
   </div>
 
@@ -175,13 +175,14 @@
 
 
 
-
- 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
- var firebaseConfig = {
+
+
+var firebaseConfig = {
   apiKey: "AIzaSyCoOFo_pN6dvjJr_PDx88VULeGXh0pj3xU",
   authDomain: "myqlcon.firebaseapp.com",
   databaseURL: "https://myqlcon-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -191,354 +192,281 @@
   appId: "1:115813241978:web:2a2567a437dd7c684857c3"
 };
 firebase.initializeApp(firebaseConfig);
-var usersRef = firebase.database().ref("users");
 
-let currentUserRef = null; // Biến giữ ref realtime của user đang đăng nhập
+let currentUserRef = null;
+ console.log("UID hiện tại: trong hàm hiển thị User ID");
+document.addEventListener("DOMContentLoaded", function () {
+  firebase.auth().onAuthStateChanged(function (user) {
+    if (user) {
+      // Đã đăng nhập -> tải dữ liệu của user
+      console.log("Đã đăng nhập với UID:", user.uid);
+     console.log("UID hiện tại: " + user.uid);
+      hienThiUserTheoUID(user.uid);
+console.warn("Chính UID hiện tại: trong hàm hiển thị User ID");
 
-document.addEventListener("DOMContentLoaded", function() {
-  let loggedUser = localStorage.getItem("loggedUser");
-  if (loggedUser) {
-    loggedUser = JSON.parse(loggedUser);
-    hienThiUser(loggedUser);
-
-    // Tạo listener realtime cho user đã đăng nhập lúc trước
-    if (loggedUser && loggedUser.UserName) {
-      // Tìm key user bằng UserName
-      usersRef.orderByChild("UserName").equalTo(loggedUser.UserName).once("value", function(snapshot) {
-        snapshot.forEach(function(childSnapshot) {
-          // Tạo listener realtime với key này
-          listenUserRealtime(childSnapshot.key);
-        });
-      });
+    } else {
+      console.warn("⚠ Chưa đăng nhập hoặc session hết hạn!");
+      console.log("Chưa đăng nhập hoặc session hết hạn!");
+      // Ví dụ: Chuyển về trang login
+      // window.location.href = "login.html";
     }
-  }
+  });
 });
 
+
+
+function hienThiUserTheoUID(uid) {
+  document.getElementById("loginForm").style.display = "none";
+  document.getElementById("userInfo").style.display = "block";
+
+  // Bắt đầu lắng nghe realtime cho user này
+  listenUserRealtime(uid);
+      console.log("UID hiện tại: trong hàm hiển thị User ID");
+}
+
+// Hàm tạo listener realtime cho user
+function listenUserRealtime(uid) {
+  if (currentUserRef) {
+    currentUserRef.off();
+  }
+
+  currentUserRef = firebase.database().ref("users/" + uid);
+  currentUserRef.on("value", function (snapshot) {
+    const userData = snapshot.val();
+    if (userData) {
+      console.log("📌 Dữ liệu user:", userData);
+      hienThiUser(userData);
+      hienThiConfigUser(userData);
+      localStorage.setItem("loggedUser", JSON.stringify(userData));
+    } else {
+      console.warn("⚠ Không tìm thấy dữ liệu user:", uid);
+    }
+  });
+}
+
+
+
 function dangNhapTuFirebase() {
-  var inputUser = document.getElementById("checkUserName").value.trim();
-  var inputPass = document.getElementById("checkPassword").value.trim();
+  var email = document.getElementById("checkUserName").value.trim();
+  var password = document.getElementById("checkPassword").value.trim();
   var ketQuaElem = document.getElementById("ketQua");
 
-  if (!inputUser || !inputPass) {
+  if (!email || !password) {
     ketQuaElem.innerText = "⚠ Vui lòng nhập đầy đủ thông tin.";
     return;
   }
 
-  var query = usersRef.orderByChild("UserName").equalTo(inputUser);
-  query.once("value", function(snapshot) {
-    if (!snapshot.exists()) {
-      ketQuaElem.innerText = "❌ Sai username hoặc password!";
-    } else {
-      let found = false;
-      snapshot.forEach(function(childSnapshot) {
-        var userData = childSnapshot.val();
-        if (userData.Password === inputPass) {
-          ketQuaElem.innerText = "";
-
-          // Lưu vào localStorage
-          localStorage.setItem("loggedUser", JSON.stringify(userData));
-
-          // Ẩn form đăng nhập, hiện phần user info
-          document.getElementById("loginForm").style.display = "none";
-          document.getElementById("userInfo").style.display = "block";
-
-          hienThiUser(userData);
-
-          // Nếu trước đó có listener realtime thì tắt đi (nếu có)
-          if (currentUserRef) {
-            currentUserRef.off();
-          }
-
-          // Tạo listener realtime dữ liệu user để tự cập nhật UI khi dữ liệu thay đổi
-          listenUserRealtime(childSnapshot.key);
-
-          found = true;
-        }
-      });
-
-      if (!found) {
-        ketQuaElem.innerText = "❌ Sai username hoặc password!";
-      }
-    }
-  });
+  firebase.auth().signInWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      ketQuaElem.innerText = "✅ Đăng nhập thành công!";
+      const user = userCredential.user;
+      hienThiUserTheoUID(user.uid);
+ console.log("a đến hiển thi config");
+    })
+    .catch((error) => {
+      ketQuaElem.innerText = "❌ " + error.message;
+    });
 }
-
-// Hàm tạo listener realtime cho user theo key
-function listenUserRealtime(userKey) {
-  if (currentUserRef) {
-    // Nếu đã có listener trước đó thì tắt đi để tránh trùng
-    currentUserRef.off();
-  }
-  currentUserRef = usersRef.child(userKey);
-  currentUserRef.on("value", function(snapshot) {
-    var updatedUserData = snapshot.val();
-    if (updatedUserData) {
-      // Cập nhật lại UI khi có thay đổi dữ liệu
-      hienThiConfigUser(updatedUserData);
-
-      // Cập nhật localStorage lưu user mới nhất
-      localStorage.setItem("loggedUser", JSON.stringify(updatedUserData));
-    }
-  });
-}
-
 function hienThiUser(userData) {
-  document.getElementById("loginForm").style.display = "none";
-  document.getElementById("userInfo").style.display = "block";
+  // Hiển thị tên và email
+  const welcomeElem = document.getElementById("welcomeUser");
+  welcomeElem.innerHTML = `👋 Xin chào <b>${userData.UserName}</b><br>📧 ${userData.Email}`;
 
-  let welcomeEl = document.getElementById("welcomeUser");
-  if (!welcomeEl) {
-    welcomeEl = document.createElement("h2");
-    welcomeEl.id = "welcomeUser";
-    welcomeEl.style.fontFamily = "'Segoe UI', sans-serif";
-    welcomeEl.style.fontWeight = "600";
-    welcomeEl.style.color = "#8e44ad";
-    welcomeEl.style.marginBottom = "15px";
-    welcomeEl.style.opacity = "0"; // fade-in
-    welcomeEl.style.transition = "opacity 0.5s ease-in-out";
-    document.getElementById("userInfo").prepend(welcomeEl);
+  // Lấy UID hiện tại từ Firebase Auth
+  const currentUser = firebase.auth().currentUser;
+  if (!currentUser) {
+    alert("Không tìm thấy UID người dùng. Vui lòng đăng nhập lại.");
+    return;
   }
-  welcomeEl.textContent = "Xin chào: " + userData.UserName;
-  setTimeout(() => (welcomeEl.style.opacity = "1"), 50);
+  const uid = currentUser.uid;
+
+  const btnStopPC = document.getElementById("btnStopPC");
+  let stopPCState = false; // lưu trạng thái hiện tại từ realtime
+
+  // ====== Lắng nghe StopPC realtime ======
+  firebase.database()
+    .ref(`/users/${uid}/Config/StopPC`)
+    .on("value", snapshot => {
+      stopPCState = snapshot.val() === true;
+      btnStopPC.textContent = stopPCState ? "Bỏ Tắt Máy Tính" : "Tắt Máy Tính";
+    });
+
+  // ====== Nút Toggle StopPC ======
+  btnStopPC.addEventListener("click", async () => {
+    try {
+      if (stopPCState) {
+        // Hủy StopPC
+        await firebase.database()
+          .ref(`/users/${uid}/Config/StopPC`)
+          .set(false);
+      } else {
+        // Bật StopPC
+        await firebase.database()
+          .ref(`/users/${uid}/Config/StopPC`)
+          .set(true);
+
+        // Sau 5 phút tự động tắt StopPC
+        setTimeout(async () => {
+          await firebase.database()
+            .ref(`/users/${uid}/Config/StopPC`)
+            .set(false);
+        }, 5 * 60 * 1000);
+      }
+    } catch (err) {
+      alert("❌ Lỗi khi xử lý lệnh: " + err.message);
+    }
+  });
 }
+
+
+
+
 
 function hienThiConfigUser(userData) {
   let configList = document.getElementById("configInfo");
   configList.innerHTML = "";
 
+  if (!userData.Config) {
+    configList.innerHTML = "<li>Chưa có cấu hình nào.</li>";
+    return;
+  }
+
   const propLabels = {
-    CooldownMinutes: "Thời gian chờ SD lại",
-    CurrentSessionMinutes: "Thời gian SD hiện tại",
-    LaunchesToday: "Số lần SD hôm nay",
-    MaxLaunchesPerDay: "Giới hạn số lần SD 1 ngày",
-    MaxMinutes: "Thời gian Max SD 1 lần",
+    CooldownMinutes: "Thời gian chờ sử dụng lại sau dừng",
+    CurrentSessionMinutes: "Thời gian sử dụng hiện tại",
+    LaunchesToday: "Số lần sử dụng hôm nay",
+    MaxLaunchesPerDay: "Giới hạn số lần sử dụng 1 ngày",
+    MaxMinutes: "Thời gian tối đa mỗi lần",
     Name: "Tên phần mềm",
     UsedMinutesToday: "Tổng thời gian sử dụng hôm nay",
-    TempStop: "Tạm dừng"
+    TempStop: "Tạm dừng",
+    StartHour: "Giờ bắt đầu",
+    EndHour: "Giờ kết thúc"
   };
 
-  if (userData.Config) {
-    for (let key in userData.Config) {
-      let value = userData.Config[key];
+  const allKeys = Object.keys(userData.Config);
+  const otherKeys = allKeys.filter(k => k !== "GamesAllowed");
+  const finalKeys = [...otherKeys, "GamesAllowed"];
 
-      if (Array.isArray(value)) {
-        let li = document.createElement("li");
-        li.innerHTML = `<span style="font-weight:bold; font-size:16px; color:#34495e;">${key}:</span>`;
+  finalKeys.forEach((key) => {
+    let value = userData.Config[key];
 
-        let subList = document.createElement("div");
-        subList.style.marginLeft = "15px";
+    // Nếu là mảng (GamesAllowed)
+    if (Array.isArray(value)) {
+      let li = document.createElement("li");
+      li.innerHTML = `<strong>${propLabels[key] || key}:</strong>`;
+      let subList = document.createElement("div");
+      subList.style.marginLeft = "15px";
 
-        value.forEach((item, index) => {
-          let gameBox = document.createElement("div");
-          gameBox.style.backgroundColor = "#ffffff";
-          gameBox.style.padding = "10px";
-          gameBox.style.margin = "12px 0";
-          gameBox.style.borderRadius = "12px";
-          gameBox.style.boxShadow = "0 2px 6px rgba(0,0,0,0.08)";
-          gameBox.style.fontFamily = "'Segoe UI', sans-serif";
-          gameBox.style.opacity = "0";
-          gameBox.style.transition = "opacity 0.5s ease-in-out";
+      value.forEach((item, index) => {
+        let gameBox = document.createElement("div");
+        gameBox.style.background = "#fff";
+        gameBox.style.padding = "10px";
+        gameBox.style.margin = "10px 0";
+        gameBox.style.borderRadius = "8px";
+        gameBox.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
 
-          let gameTitle = document.createElement("div");
-          gameTitle.textContent = `#${index + 1}`;
-          gameTitle.style.fontWeight = "bold";
-          gameTitle.style.fontSize = "15px";
-          gameTitle.style.marginBottom = "6px";
-          gameTitle.style.color = "#2c3e50";
-          gameBox.appendChild(gameTitle);
+        let gameTitle = document.createElement("div");
+        gameTitle.textContent = `${index + 1}. ${item.Name || "Không tên"}`;
+        gameTitle.style.fontWeight = "bold";
+        gameTitle.style.marginBottom = "6px";
+        gameBox.appendChild(gameTitle);
 
-          for (let prop in item) {
-            let attrBox = document.createElement("div");
-            attrBox.style.backgroundColor = "#e8f6ff";
-            attrBox.style.color = "#005a8d";
-            attrBox.style.padding = "6px 10px";
-            attrBox.style.margin = "4px 0";
-            attrBox.style.borderRadius = "6px";
-            attrBox.style.fontSize = "14px";
-            attrBox.style.fontWeight = "500";
-            attrBox.style.display = "flex";
-            attrBox.style.alignItems = "center";
-            attrBox.style.justifyContent = "space-between";
+        // Hiển thị các thuộc tính
+        for (let prop in item) {
+          let attr = document.createElement("div");
+          attr.textContent = `${propLabels[prop] || prop}: ${item[prop]}`;
+          attr.style.fontSize = "14px";
+          attr.style.margin = "2px 0";
+          gameBox.appendChild(attr);
+        }
 
-            let label = propLabels[prop] || prop;
+        // Nút thao tác
+        let btnContainer = document.createElement("div");
+        btnContainer.style.marginTop = "8px";
 
-            let span = document.createElement("span");
-            span.textContent = label + ":";
-            span.style.flex = "1";
+        let currentUID = firebase.auth().currentUser?.uid || "";
 
-            let valSpan = document.createElement("span");
-            valSpan.textContent = item[prop];
-            valSpan.style.flex = "1";
-            valSpan.style.marginLeft = "10px";
+        // Cập nhật
+        let btnUpdate = document.createElement("button");
+        btnUpdate.textContent = "Cập nhật";
+        btnUpdate.style.marginRight = "6px";
+        btnUpdate.onclick = () => {
+          const params = new URLSearchParams({ uid: currentUID, key, index });
+          window.location.href = `update.html?${params.toString()}`;
+        };
 
-            attrBox.appendChild(span);
-            attrBox.appendChild(valSpan);
-            gameBox.appendChild(attrBox);
+        // Xóa
+        let btnDelete = document.createElement("button");
+        btnDelete.textContent = "Xóa";
+        btnDelete.style.marginRight = "6px";
+        btnDelete.onclick = () => {
+          if (!confirm("Bạn có chắc muốn xóa game này?")) return;
+          let path = `users/${currentUID}/Config/${key}`;
+          firebase.database().ref(path).once("value").then(snapshot => {
+            let arr = Object.values(snapshot.val() || []);
+            arr.splice(index, 1);
+            return firebase.database().ref(path).set(arr);
+          }).then(() => {
+            alert("✅ Đã xóa thành công!");
+          }).catch(err => {
+            alert("❌ Lỗi khi xóa: " + err.message);
+          });
+        };
+
+        // Dừng/Chạy lại
+        let btnStop = document.createElement("button");
+        let isStopped = item.TempStop === true;
+        updateStopBtn(btnStop, isStopped);
+
+        btnStop.onclick = async () => {
+          if (!isStopped) {
+            await firebase.database().ref(`users/${currentUID}/Config/${key}/${index}/TempStop`).set(true);
+            isStopped = true;
+            updateStopBtn(btnStop, true);
+            setTimeout(async () => {
+              await firebase.database().ref(`users/${currentUID}/Config/${key}/${index}/TempStop`).set(false);
+              isStopped = false;
+              updateStopBtn(btnStop, false);
+            }, 30 * 60 * 1000);
+          } else {
+            await firebase.database().ref(`users/${currentUID}/Config/${key}/${index}/TempStop`).set(false);
+            isStopped = false;
+            updateStopBtn(btnStop, false);
           }
-// Tạo container chứa các nút
-let btnContainer = document.createElement("div");
-btnContainer.style.display = "flex";
-btnContainer.style.gap = "8px"; // khoảng cách giữa các nút
-btnContainer.style.marginTop = "8px";
-          // ================= Nút Cập nhật =================
-          let updateBtn = document.createElement("button");
-          updateBtn.textContent = "Cập nhật";
-          updateBtn.id = `update_${key}_${index}`;
-          updateBtn.style.marginTop = "8px";
-          updateBtn.style.padding = "6px 12px";
-          updateBtn.style.backgroundColor = "#27ae60";
-          updateBtn.style.color = "#fff";
-          updateBtn.style.border = "none";
-          updateBtn.style.borderRadius = "6px";
-          updateBtn.style.cursor = "pointer";
+        };
 
-          updateBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            const params = new URLSearchParams({
-              uid: userData.UserName,
-              key: key,
-              index: index
-            });
-            window.location.href = `update.html?${params.toString()}`;
-          });
+        btnContainer.appendChild(btnUpdate);
+        btnContainer.appendChild(btnDelete);
+        btnContainer.appendChild(btnStop);
+        gameBox.appendChild(btnContainer);
+        subList.appendChild(gameBox);
+      });
 
-          // ================= Nút Xóa game =================
-          let deleteBtn = document.createElement("button");
-          deleteBtn.textContent = "Xóa Game";
-          deleteBtn.id = `delete_${key}_${index}`;
-          deleteBtn.style.marginTop = "8px";
-          deleteBtn.style.marginLeft = "8px";
-          deleteBtn.style.padding = "6px 12px";
-          deleteBtn.style.backgroundColor = "#e74c3c";
-          deleteBtn.style.color = "#fff";
-          deleteBtn.style.border = "none";
-          deleteBtn.style.borderRadius = "6px";
-          deleteBtn.style.cursor = "pointer";
+      li.appendChild(subList);
+      configList.appendChild(li);
+    }
+    // Nếu là giá trị thường
+    else {
+      let li = document.createElement("li");
+      li.textContent = `${propLabels[key] || key}: ${value}`;
+      configList.appendChild(li);
+    }
+  });
 
-          deleteBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            if (confirm("Bạn có chắc muốn xóa game này không?")) {
-              firebase.database()
-                .ref(`/users/${userData.UserName}/Config/${key}/${index}`)
-                .remove()
-                .then(() => {
-                  alert("Xóa game thành công!");
-                  location.reload();
-                })
-                .catch(err => alert("Lỗi khi xóa: " + err.message));
-            }
-          });
-
-          // ================= Nút Dừng Ngay =================
-      // ================= Nút Dừng Ngay / Chạy Lại =================
-let stopBtn = document.createElement("button");
-stopBtn.id = `stop_${key}_${index}`;
-stopBtn.style.marginTop = "8px";
-stopBtn.style.marginLeft = "8px";
-stopBtn.style.padding = "6px 12px";
-stopBtn.style.border = "none";
-stopBtn.style.borderRadius = "6px";
-stopBtn.style.cursor = "pointer";
-stopBtn.style.color = "#fff";
-
-// Lấy trạng thái ban đầu
-let isStopped = item.TempStop === true;
-capNhatNut(stopBtn, isStopped);
-
-// Hàm cập nhật nút
-function capNhatNut(button, isStopped) {
-  if (isStopped) {
-    button.textContent = "Chạy lại";
-    button.style.backgroundColor = "#2980b9"; // xanh
-  } else {
-    button.textContent = "Dừng ngay";
-    button.style.backgroundColor = "#c0392b"; // đỏ
-  }
-}
-
-// Sự kiện click
-stopBtn.addEventListener("click", async (e) => {
-  e.preventDefault();
-  if (!isStopped) {
-    // Dừng game
-    await firebase.database()
-      .ref(`/users/${userData.UserName}/Config/${key}/${index}/TempStop`)
-      .set(true);
-    isStopped = true;
-    capNhatNut(stopBtn, true);
-
-    // Tự bật lại sau 30 phút
-    setTimeout(async () => {
-      await firebase.database()
-        .ref(`/users/${userData.UserName}/Config/${key}/${index}/TempStop`)
-        .set(false);
-      isStopped = false;
-      capNhatNut(stopBtn, false);
-    }, 30 * 60 * 1000);
-
-  } else {
-    // Cho chạy lại ngay
-    await firebase.database()
-      .ref(`/users/${userData.UserName}/Config/${key}/${index}/TempStop`)
-      .set(false);
-    isStopped = false;
-    capNhatNut(stopBtn, false);
-  }
-});
-
-
-// Thêm các nút vào container
-btnContainer.appendChild(updateBtn);
-btnContainer.appendChild(deleteBtn);
-btnContainer.appendChild(stopBtn);
-
-// Thêm container nút vào gameBox
-gameBox.appendChild(btnContainer);
-
-          subList.appendChild(gameBox);
-          setTimeout(() => (gameBox.style.opacity = "1"), 50 + index * 100);
-        });
-
-        li.appendChild(subList);
-        configList.appendChild(li);
-      } else {
-        let li = document.createElement("li");
-        li.style.fontFamily = "'Segoe UI', sans-serif";
-        li.style.color = "#2c3e50";
-        li.textContent = `${propLabels[key] || key}: ${value}`;
-        configList.appendChild(li);
-      }
+  function updateStopBtn(btn, stopped) {
+    if (stopped) {
+      btn.textContent = "Chạy lại";
+      btn.style.background = "#2980b9";
+      btn.style.color = "#fff";
+    } else {
+      btn.textContent = "Dừng ngay";
+      btn.style.background = "#c0392b";
+      btn.style.color = "#fff";
     }
   }
 }
 
-
-// Hàm cập nhật dữ liệu lên Firebase
-function capNhatConfig(key, index, updatedData) {
-  const refPath = `users/${currentUserId}/Config/${key}/${index}`;
-
-  firebase.database()
-    .ref(refPath)
-    .update(updatedData)
-    .then(() => {
-      const successMsg = `
-✅ Cập nhật thành công!
-📂 Đường dẫn: ${refPath}
-📦 Dữ liệu mới: ${JSON.stringify(updatedData, null, 2)}
-      `;
-      console.log(successMsg); // in ra console
-      alert(successMsg);       // hiển thị popup
-    })
-    .catch((error) => {
-      const errorMsg = `
-❌ Lỗi khi cập nhật
-📂 Đường dẫn: ${refPath}
-📄 Lỗi: ${error.message}
-      `;
-      console.error(errorMsg);
-      alert(errorMsg);
-    });
-}
 
  
 function dangXuat() {
@@ -552,6 +480,9 @@ function dangXuat() {
   document.getElementById("loginForm").style.display = "block";
   document.getElementById("userInfo").style.display = "none";
 }
+
+
+
 
 </script>
   <script src="script.js"></script>
