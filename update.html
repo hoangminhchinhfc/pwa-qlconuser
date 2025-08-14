@@ -1,116 +1,62 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Cập nhật Config</title>
+
+<!-- Firebase v8 -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    background: linear-gradient(to right, #74ebd5, #ACB6E5);
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    min-height: 100vh;
+  body{
+    font-family:Arial, sans-serif; margin:0; min-height:100vh;
+    display:flex; justify-content:flex-start; align-items:center;
+    background:linear-gradient(135deg,#74ebd5,#ACB6E5);
   }
-
-  .container {
-    background: #fff;
-    padding: 20px;
-    border-radius: 15px;
-    box-shadow: 0px 4px 20px rgba(0,0,0,0.2);
-    width: 100%;
-    max-width: 500px; /* Desktop tối đa 500px */
-    box-sizing: border-box;
-    animation: fadeIn 0.5s ease-in-out;
+  .container{
+    width:100%; max-width:560px; margin:24px auto; background:#fff;
+    border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.12);
+    padding:24px; box-sizing:border-box;
   }
-
-  /* Responsive cho mobile */
-  @media (max-width: 600px) {
-    .container {
-      margin: 10px;
-      padding: 15px;
-      max-width: 100%;
-      border-radius: 10px;
-    }
-    input, button {
-      font-size: 16px; /* Chữ to hơn để dễ bấm */
-    }
+  h2{ margin:0 0 12px; }
+  .muted{ color:#666; margin:4px 0 16px; }
+  label{ display:block; font-weight:600; margin:14px 0 6px; }
+  input,select{
+    width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:10px;
+    outline:none; box-sizing:border-box;
   }
-
-  h1, h2 {
-    text-align: center;
-    margin-bottom: 20px;
-    color: #333;
+  input:focus{ border-color:#6a11cb; }
+  .row{
+    display:flex; gap:10px; align-items:center;
   }
-
-  .form-group {
-    margin-bottom: 15px;
+  .row .grow{ flex:1; }
+  .btn{
+    display:inline-block; width:100%; padding:12px; margin-top:16px;
+    border:none; border-radius:10px; color:#fff; font-weight:600; cursor:pointer;
+    background:linear-gradient(90deg,#6a11cb,#2575fc);
+    transition:transform .15s ease;
   }
-
-  label {
-    font-weight: bold;
-    margin-bottom: 5px;
-    display: block;
+  .btn:hover{ transform:translateY(-1px); }
+  .btn--ghost{
+    background:#eef2ff; color:#3b5bdb;
   }
-
-  input {
-    width: 100%;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    outline: none;
-    transition: border 0.3s;
-  }
-
-  input:focus {
-    border-color: #74ebd5;
-  }
-
-  button {
-    width: 100%;
-    padding: 10px;
-    background: linear-gradient(to right, #6a11cb, #2575fc);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: 0.3s;
-  }
-
-  button:hover {
-    background: linear-gradient(to right, #2575fc, #6a11cb);
-    transform: scale(1.05);
-  }
-
-  #ketQua {
-    text-align: center;
-    margin-top: 10px;
-    color: red;
-    font-weight: bold;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-</style></head>
+  .error{ color:#c0392b; font-weight:700; }
+  .ok{ color:#27ae60; font-weight:700; }
+</style>
+</head>
 <body>
-
-<div class="container">
-  <h2>🔧 Cập nhật Config</h2>
-  <div id="formArea">Đang tải dữ liệu...</div>
-</div>
+  <div class="container">
+    <h2>🔧 Cập nhật Config</h2>
+    <div class="muted">Trang này yêu cầu bạn đang đăng nhập đúng tài khoản sở hữu UID.</div>
+    <div id="formArea">Đang tải dữ liệu...</div>
+  </div>
 
 <script>
- // Cấu hình Firebase
- var firebaseConfig = {
+  // === Firebase config ===
+  var firebaseConfig = {
     apiKey: "AIzaSyCoOFo_pN6dvjJr_PDx88VULeGXh0pj3xU",
     authDomain: "myqlcon.firebaseapp.com",
     databaseURL: "https://myqlcon-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -118,72 +64,122 @@
     storageBucket: "myqlcon.appspot.com",
     messagingSenderId: "115813241978",
     appId: "1:115813241978:web:2a2567a437dd7c684857c3"
- };
- firebase.initializeApp(firebaseConfig);
+  };
+  firebase.initializeApp(firebaseConfig);
 
- const urlParams = new URLSearchParams(window.location.search);
- const uid   = urlParams.get("uid");
- const key   = urlParams.get("key");
- const index = urlParams.get("index");
+  // === Query params ===
+  const qp = new URLSearchParams(window.location.search);
+  const uid   = qp.get("uid");          // owner uid
+  const key   = qp.get("key");          // e.g. "GamesAllowed"
+  const index = qp.get("index");        // e.g. "0" (string)
+  const idxKey = String(index);         // đảm bảo là chuỗi
 
- const formArea = document.getElementById("formArea");
+  const formArea = document.getElementById("formArea");
 
- if (!uid) {
-    formArea.innerHTML = `<div class="error">❌ Không tìm thấy User ID!</div>`;
-    throw new Error("User ID missing");
- }
+  if (!uid || !key || index === null) {
+    formArea.innerHTML = `<div class="error">❌ Thiếu tham số (uid/key/index) trên URL.</div>`;
+  } else {
+    // Chờ xác thực
+    firebase.auth().onAuthStateChanged(async (user) => {
+      if (!user) {
+        formArea.innerHTML = `
+          <div class="error">⚠ Bạn chưa đăng nhập.</div>
+          <button class="btn btn--ghost" onclick="window.location.href='./'">⬅ Quay lại trang chính</button>
+        `;
+        return;
+      }
+      if (user.uid !== uid) {
+        formArea.innerHTML = `
+          <div class="error">⛔ Không có quyền. UID hiện tại (${user.uid}) khác UID trên URL (${uid}).</div>
+          <button class="btn btn--ghost" onclick="history.back()">⬅ Quay lại</button>
+        `;
+        return;
+      }
 
- if (!key || index === null) {
-    formArea.innerHTML = `<div class="error">❌ Thiếu tham số key hoặc index!</div>`;
-    throw new Error("Key/Index missing");
- }
+      const refPath = `users/${uid}/Config/${key}/${idxKey}`;
+      const itemRef = firebase.database().ref(refPath);
 
- const refPath = `users/${uid}/Config/${key}/${index}`;
+      try {
+        const snap = await itemRef.once("value");
+        const data = snap.val();
+        if (!data) {
+          formArea.innerHTML = `<div class="error">❌ Không tìm thấy dữ liệu tại <code>${refPath}</code>.</div>`;
+          return;
+        }
 
- firebase.database().ref(refPath).once("value").then(snapshot => {
-    const data = snapshot.val();
-    if (!data) {
-      formArea.innerHTML = `<div class="error">❌ Không tìm thấy dữ liệu.</div>`;
-      return;
-    }
+        // render form
+        renderForm(data, refPath);
+      } catch (err) {
+        formArea.innerHTML = `<div class="error">❌ Lỗi đọc dữ liệu: ${err.message}</div>`;
+      }
+    });
+  }
 
+  // === UI + Save ===
+  function renderForm(data, refPath){
     formArea.innerHTML = "";
-    const inputs = {};
 
-    for (let prop in data) {
+    const inputs = {};
+    const isBool = v => typeof v === "boolean";
+    const isNum  = v => typeof v === "number";
+
+    // Tạo input theo đúng kiểu dữ liệu gốc
+    Object.keys(data).forEach((prop) => {
       const label = document.createElement("label");
       label.textContent = prop;
-
-      const input = document.createElement("input");
-      input.value = data[prop];
-      inputs[prop] = input;
-
       formArea.appendChild(label);
-      formArea.appendChild(input);
-    }
 
-    const saveBtn = document.createElement("button");
-    saveBtn.textContent = "💾 Lưu thay đổi";
-    saveBtn.onclick = () => {
-      const updatedData = {};
-      for (let prop in inputs) {
-        updatedData[prop] = inputs[prop].value;
+      let input;
+
+      if (isBool(data[prop])) {
+        input = document.createElement("input");
+        input.type = "checkbox";
+        input.checked = !!data[prop];
+      } else {
+        input = document.createElement("input");
+        input.type = isNum(data[prop]) ? "number" : "text";
+        input.value = data[prop];
       }
-      firebase.database().ref(refPath).update(updatedData).then(() => {
-        saveBtn.textContent = "✅ Đã cập nhật thành công!";
-        saveBtn.style.background = "linear-gradient(135deg, #2ecc71, #27ae60)";
-        setTimeout(() => {
-          window.location.href = "./";
-        }, 1500);
-      }).catch(err => {
-        saveBtn.textContent = "❌ Lỗi: " + err.message;
-        saveBtn.style.background = "linear-gradient(135deg, #e74c3c, #c0392b)";
+
+      input.dataset.type = isBool(data[prop]) ? "bool" : (isNum(data[prop]) ? "number" : "string");
+      inputs[prop] = input;
+      formArea.appendChild(input);
+    });
+
+    // Nút lưu
+    const saveBtn = document.createElement("button");
+    saveBtn.className = "btn";
+    saveBtn.textContent = "💾 Lưu thay đổi";
+    saveBtn.onclick = async () => {
+      const updates = {};
+      Object.keys(inputs).forEach((prop) => {
+        const t = inputs[prop].dataset.type;
+        let val;
+        if (t === "bool")      val = inputs[prop].checked;
+        else if (t === "number") val = Number(inputs[prop].value);
+        else                    val = inputs[prop].value;
+        updates[`${refPath}/${prop}`] = val;
       });
+
+      try {
+        await firebase.database().ref().update(updates);   // multi-path update
+        saveBtn.textContent = "✅ Đã cập nhật!";
+        saveBtn.style.background = "linear-gradient(135deg,#2ecc71,#27ae60)";
+        setTimeout(()=> window.location.href = "./", 1200);
+      } catch (err) {
+        saveBtn.textContent = "❌ " + err.message;
+        saveBtn.style.background = "linear-gradient(135deg,#e74c3c,#c0392b)";
+      }
     };
-
     formArea.appendChild(saveBtn);
- });
-</script>
 
+    // Nút quay lại
+    const backBtn = document.createElement("button");
+    backBtn.className = "btn btn--ghost";
+    backBtn.textContent = "⬅ Quay lại";
+    backBtn.onclick = () => history.back();
+    formArea.appendChild(backBtn);
+  }
+</script>
 </body>
 </html>
