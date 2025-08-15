@@ -268,11 +268,9 @@ function dangNhapTuFirebase() {
     });
 }
 function hienThiUser(userData) {
-  // Hiển thị tên và email
   const welcomeElem = document.getElementById("welcomeUser");
   welcomeElem.innerHTML = `👋 Xin chào <b>${userData.UserName}</b><br>📧 ${userData.Email}`;
 
-  // Lấy UID hiện tại từ Firebase Auth
   const currentUser = firebase.auth().currentUser;
   if (!currentUser) {
     alert("Không tìm thấy UID người dùng. Vui lòng đăng nhập lại.");
@@ -281,31 +279,33 @@ function hienThiUser(userData) {
   const uid = currentUser.uid;
 
   const btnStopPC = document.getElementById("btnStopPC");
-  let stopPCState = false; // lưu trạng thái hiện tại từ realtime
 
-  // ====== Lắng nghe StopPC realtime ======
+  // Gỡ bỏ tất cả event listener click cũ
+  btnStopPC.replaceWith(btnStopPC.cloneNode(true));
+  const newBtnStopPC = document.getElementById("btnStopPC");
+
+  let stopPCState = false;
+
+  // Lắng nghe StopPC realtime
   firebase.database()
     .ref(`/users/${uid}/Config/StopPC`)
     .on("value", snapshot => {
       stopPCState = snapshot.val() === true;
-      btnStopPC.textContent = stopPCState ? "Bỏ Tắt Máy Tính" : "Tắt Máy Tính";
+      newBtnStopPC.textContent = stopPCState ? "Bỏ Tắt Máy Tính" : "Tắt Máy Tính";
     });
 
-  // ====== Nút Toggle StopPC ======
-  btnStopPC.addEventListener("click", async () => {
+  // Nút Toggle StopPC
+  newBtnStopPC.addEventListener("click", async () => {
     try {
       if (stopPCState) {
-        // Hủy StopPC
         await firebase.database()
           .ref(`/users/${uid}/Config/StopPC`)
           .set(false);
       } else {
-        // Bật StopPC
         await firebase.database()
           .ref(`/users/${uid}/Config/StopPC`)
           .set(true);
 
-        // Sau 5 phút tự động tắt StopPC
         setTimeout(async () => {
           await firebase.database()
             .ref(`/users/${uid}/Config/StopPC`)
