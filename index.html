@@ -2,520 +2,443 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4a90e2">
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#317EFB"/>
-  <link rel="manifest" href="manifest.json">
-  <title>Quản Lý Con - Người Dùng </title>
- <style>
-  body {
-    font-family: Arial, sans-serif;
-    background: linear-gradient(135deg, #74ebd5, #ACB6E5);
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column; /* sắp xếp theo cột */
-    align-items: center; /* căn giữa ngang */
-    min-height: 100vh;
-  }
+  <title>Quản lý thiết bị</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0; padding: 0;
+      background: #f0f2f5;
+      color: #333;
+    }
+    header {
+      background: #4a90e2;
+      color: white;
+      padding: 15px;
+      text-align: center;
+    }
+    .container {
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    h2, h3 {
+      margin-top: 0;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 15px;
+    }
+    button {
+      background: #4a90e2;
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      font-size: 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      background: #357ab8;
+    }
+#thongTin {
+  background: #f9f9f9;
+  border: 1px solid #eee;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 10px;
+  font-size: 14px;
+  word-break: break-word;  /* giữ lại để không tràn dòng */
+  white-space: normal;     /* gọn gàng, không bị xuống dòng lung tung */
+}
 
-  .container {
-    background: #fff;
-    padding: 25px;
-    border-radius: 15px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-    width: 360px;
-    animation: fadeIn 0.5s ease-in-out;
-  }
+    .logout-btn {
+      background: #e74c3c;
+      margin-left: 10px;
+    }
+    .logout-btn:hover {
+      background: #c0392b;
+    }
 
-  h1, h2 {
-    text-align: center;
-    margin-bottom: 20px;
-    color: #2d3436;
-  }
+.info-card {
+  margin-top: 1px;
+  padding: 1px;
+  border-radius: 10px;
+  background: #fafafa;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  font-size: 14px;
+  line-height: 1.4;
+}
 
-  .form-group {
-    margin-bottom: 15px;
-  }
 
-  label {
-    font-weight: bold;
-    margin-bottom: 5px;
-    display: block;
-    color: #555;
-  }
 
-  input {
-    width: 100%;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-    outline: none;
-    font-size: 14px;
-    transition: all 0.3s ease;
-    background: #fdfdfd;
-  }
 
-  input:focus {
-    border-color: #6a11cb;
-    box-shadow: 0 0 5px rgba(106, 17, 203, 0.3);
-  }
+.info-block p {
+  margin: 0;
+  padding: 0;
+}
 
-  button {
-    padding: 10px;
-    background: linear-gradient(90deg, #6a11cb, #2575fc);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 15px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
+.info-block h3 {
+  margin-bottom: 6px; /* tiêu đề có chút khoảng cách */
+}
+.info-block p b {
+  color: #333;
+  min-width: 120px;
+  display: inline-block;
+}
 
-  button:hover {
-    background: linear-gradient(90deg, #2575fc, #6a11cb);
-    transform: scale(1.05);
-  }
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.info-table td {
+  padding: 6px 8px;
+  vertical-align: top;
+}
+.info-table td:first-child {
+  font-weight: bold;
+  width: 150px;
+  color: #333;
+}
 
-  /* Nút trên cùng 1 hàng */
-  .button-row {
-    display: flex;
-    gap: 10px;
-    margin-top: 15px;
-  }
 
-  .button-row button {
-    flex: 1; /* Mỗi nút rộng đều nhau */
-  }
 
-  #ketQua {
-    text-align: center;
-    margin-top: 10px;
-    color: #e84118;
-    font-weight: bold;
-  }
 
-  ul {
-    list-style: none;
-    padding: 0;
-  }
+.config-block {
+  margin-top: 10px;
+  padding-top: 6px;
+  border-top: 1px solid #ddd;
+}
+.config-block ul {
+  margin: 4px 0 4px 18px;
+  padding: 0;
+}
+.config-block li {
+  margin: 2px 0;
+}
 
-  ul li {
-    background: #f7f9fa;
-    margin: 5px 0;
-    padding: 8px;
-    border-radius: 6px;
-    border: 1px solid #eee;
-    font-size: 14px;
-  }
+.app-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.app-card h4 {
+  margin: 0 0 8px;
+  color: #4a90e2;
+}
+.app-info p {
+  margin: 3px 0;
+  font-size: 14px;
+}
+.app-actions {
+  margin-top: 10px;
+}
+.app-actions button {
+  margin-right: 6px;
+  border-radius: 6px;
+}
+.app-actions .btn-update { background:#4a90e2; }
+.app-actions .btn-delete { background:#6c63ff; }
+.app-actions .btn-stop   { background:#e74c3c; }
 
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-</style>
-
+.action-buttons {
+  margin: 15px 0;
+  text-align: center;
+}
+.action-buttons button {
+  border: none;
+  padding: 10px 20px;
+  margin: 5px;
+  font-size: 15px;
+  font-weight: bold;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.btn-shutdown {
+  background: linear-gradient(to right, #36d1dc, #5b86e5);
+}
+.btn-talk {
+  background: linear-gradient(to right, #667eea, #764ba2);
+}
+.action-buttons button:hover {
+  opacity: 0.9;
+}
+  </style>
 </head>
 <body>
 
-<div class="container" id="loginForm">
-  <h1>🔑 Đăng Nhập</h1>
-  <div class="form-group">
-    <label for="checkUserName">Email Đăng Nhập</label>
-    <input type="text" id="checkUserName" placeholder="Nhập username...">
+<header>
+  <h1>📱 Quản lý thiết bị Firebase</h1>
+</header>
+
+<div class="container">
+
+  <!-- Form Login -->
+  <div id="loginForm" class="card">
+    <h2>🔑 Đăng nhập</h2>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Mật khẩu">
+    <button onclick="dangNhap()">Đăng nhập</button>
   </div>
-  <div class="form-group">
-    <label for="checkPassword">Mật khẩu</label>
-    <input type="password" id="checkPassword" placeholder="Nhập password...">
+
+  <!-- Info sau khi đăng nhập -->
+  <div id="userInfo" class="card" style="display:none;">
+    <h2 id="welcomeMsg">Xin chào 👋</h2>
+    <button onclick="dangXuat()" class="logout-btn">Đăng xuất</button>
+ 	<button id="installBtn"  class="logout-btn">Download - Cài Đặt</button>
+    <div class="card" style="margin-top:20px;">
+      <h3>📋 Danh sách thiết bị</h3>
+      <select id="deviceList">
+        <option value="">-- Chọn thiết bị --</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <h3>ℹ Thông tin chi tiết</h3>
+      <div id="thongTin">⚠ Hãy chọn 1 thiết bị!</div>
+    </div>
+
+    <div class="card">
+      <h3>➕ Thêm thiết bị mới</h3>
+      <input type="text" id="newDeviceId" placeholder="Nhập Device ID">
+      <input type="text" id="newDeviceName" placeholder="Tên thiết bị">
+      <button onclick="themDevice()">Thêm thiết bị</button>
+    </div>
   </div>
-  <button onclick="dangNhapTuFirebase()">Đăng nhập</button>
-  <p id="ketQua"></p>
 </div>
-
-
-
- <div class="container"  >
-  <div id="welcomeUser" style="margin-bottom:15px; font-weight:bold; font-size:18px; color:#2c3e50;"></div>
-  <h3>⚙ Thông tin Config</h3>
-<h2> Danh Sách các chương trình bị giới hạn thời gian </h2>
-</div>
-
-
-<div class="container" id="userInfo" style="display:none;">
-
-  <div style="display: flex; gap: 10px;">
-      <button id="btnStopPC">Tắt Máy Tính Từ Xa</button>
-      <button id="btnChat">Nói Chuyện với Máy Con</button>
-  </div>
-
-  <ul id="configInfo"></ul>
-
-  <!-- Nút ở giữa -->
-  <div style="text-align: center; margin-top: 15px;">
-      <button onclick="dangXuat()" style="width: auto; min-width: 140px;">
-    
- 	<span style="font-size: 2rem;">🚪</span> Đăng xuất
-      </button>
-  </div>
-
-  <h3></h3>
-
-  <div style="text-align: center; margin-top: 10px;">
-      <button id="a2hsBtn" style="width: auto; min-width: 200px;">
-  	<span style="font-size: 2rem;">📲</span> Thêm vào màn hình chính
-      
-      </button>
-  </div>
-
-</div>
-
-
-
-
-
-
-
-
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
+  // Firebase config
+  var firebaseConfig = {
+    apiKey: "AIzaSyCoOFo_pN6dvjJr_PDx88VULeGXh0pj3xU",
+    authDomain: "myqlcon.firebaseapp.com",
+    databaseURL: "https://myqlcon-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "myqlcon",
+    storageBucket: "myqlcon.appspot.com",
+    messagingSenderId: "115813241978",
+    appId: "1:115813241978:web:2a2567a437dd7c684857c3"
+  };
+  firebase.initializeApp(firebaseConfig);
 
+  // Biến toàn cục
+  let MyUserID = "";
+  let SelectedDeviceID = "";
 
-var firebaseConfig = {
-  apiKey: "AIzaSyCoOFo_pN6dvjJr_PDx88VULeGXh0pj3xU",
-  authDomain: "myqlcon.firebaseapp.com",
-  databaseURL: "https://myqlcon-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "myqlcon",
-  storageBucket: "myqlcon.appspot.com",
-  messagingSenderId: "115813241978",
-  appId: "1:115813241978:web:2a2567a437dd7c684857c3"
-};
-firebase.initializeApp(firebaseConfig);
+  function dangNhap() {
+    let email = document.getElementById("email").value;
+    let pass = document.getElementById("password").value;
+    firebase.auth().signInWithEmailAndPassword(email, pass)
+      .catch((err) => alert("Lỗi: " + err.message));
+  }
 
-let currentUserRef = null;
- console.log("UID hiện tại: trong hàm hiển thị User ID");
-document.addEventListener("DOMContentLoaded", function () {
+  function dangXuat() {
+    firebase.auth().signOut();
+  }
+
   firebase.auth().onAuthStateChanged(function (user) {
     if (user) {
-      // Đã đăng nhập -> tải dữ liệu của user
-      console.log("Đã đăng nhập với UID:", user.uid);
-     console.log("UID hiện tại: " + user.uid);
       hienThiUserTheoUID(user.uid);
-console.warn("Chính UID hiện tại: trong hàm hiển thị User ID");
-
     } else {
-      console.warn("⚠ Chưa đăng nhập hoặc session hết hạn!");
-      console.log("Chưa đăng nhập hoặc session hết hạn!");
-      // Ví dụ: Chuyển về trang login
-      // window.location.href = "login.html";
+      document.getElementById("loginForm").style.display = "block";
+      document.getElementById("userInfo").style.display = "none";
     }
   });
+
+  function hienThiUserTheoUID(uid) {
+    document.getElementById("loginForm").style.display = "none";
+    document.getElementById("userInfo").style.display = "block";
+    MyUserID = uid;
+
+let user = firebase.auth().currentUser;
+  let tenHienThi = user.displayName || "";
+  let email = user.email || "";
+  // Hiển thị tên + email
+  let msg = "Xin chào 👋 ";
+  if (tenHienThi) msg += tenHienThi + " (" + email + ")";
+  else msg += email;
+document.getElementById("welcomeMsg").textContent = msg;
+
+
+    let ref = firebase.database().ref("users/" + uid + "/devices");
+    let select = document.getElementById("deviceList");
+
+    ref.on("value", (snapshot) => {
+      let ds = snapshot.val();
+      select.innerHTML = '<option value="">-- Chọn thiết bị --</option>';
+      if (ds) {
+        Object.keys(ds).forEach((deviceId) => {
+          let opt = document.createElement("option");
+          opt.value = deviceId;
+          opt.textContent = deviceId;
+          select.appendChild(opt);
+        });
+        if (!SelectedDeviceID) {
+          SelectedDeviceID = Object.keys(ds)[0];
+          select.value = SelectedDeviceID;
+          hienThiThongTin();
+        }
+      } else {
+        select.innerHTML = '<option value="">⚠ Không có thiết bị nào</option>';
+        SelectedDeviceID = "";
+        document.getElementById("thongTin").innerHTML = "⚠ Chưa có thiết bị!";
+      }
+    });
+
+    select.onchange = function () {
+      SelectedDeviceID = this.value;
+      hienThiThongTin();
+    };
+  }
+
+// Hàm hiển thị chi tiết thiết bị
+function hienThiThongTin() {
+  let select = document.getElementById("deviceList");
+  let deviceId = select.value;
+  let infoDiv = document.getElementById("thongTin");
+
+  if (!deviceId) {
+    infoDiv.innerHTML = "⚠ Hãy chọn 1 thiết bị!";
+    return;
+  }
+
+  firebase.database()
+    .ref("users/" + MyUserID + "/devices/" + deviceId)
+    .once("value")
+    .then((snapshot) => {
+      let data = snapshot.val();
+      if (!data) { infoDiv.innerHTML = "⚠ Không tìm thấy dữ liệu thiết bị!"; return; }
+
+      let html = `<div class="info-card">`;
+
+      // --- Info cơ bản ---
+      if (data.Info) {
+        html += `
+          <div class="info-block">
+            <h3>📌 Thông tin thiết bị</h3>
+            <table class="info-table">
+              <tr><td><b>Tên thiết bị</b></td><td>${data.Info.DeviceName}</td></tr>
+              <tr><td><b>Hiển thị</b></td><td>${data.Info.DisplayName}</td></tr>
+              <tr><td><b>Địa chỉ IP</b></td><td>${data.Info.IPAddress}</td></tr>
+              <tr><td><b>Hệ điều hành</b></td><td>${data.Info.OSVersion}</td></tr>
+              <tr><td><b>Người dùng</b></td><td>${data.Info.UserName}</td></tr>
+            </table>
+          </div>
+        `;
+      }
+
+      // --- GamesAllowed riêng ---
+      if (data.Config && data.Config.GamesAllowed) {
+        html += `<div class="config-block"><h3>🎮 Games Allowed</h3>`;
+        Object.keys(data.Config.GamesAllowed).forEach((key, idx) => {
+          let g = data.Config.GamesAllowed[key];
+          html += `
+            <div class="app-card">
+              <h4>${idx+1}. ${g.Name || "Ứng dụng"}</h4>
+              <div class="app-info">
+                <p>⏱ Thời gian sử dụng hiện tại: ${g.CurrentSessionMinutes}</p>
+                <p>🔄 Thời gian chờ: ${g.CooldownMinutes}</p>
+                <p>📅 Số lần hôm nay: ${g.LaunchesToday}</p>
+                <p>📌 Giới hạn số lần/ngày: ${g.MaxLaunchesPerDay}</p>
+                <p>⏳ Giới hạn phút: ${g.MaxMinutes}</p>
+                <p>🚫 Tạm dừng: ${g.TempStop}</p>
+                <p>🕒 Đã dùng hôm nay: ${g.UsedMinutesToday}</p>
+              </div>
+              <div class="app-actions">
+                <button class="btn-update" onclick="capNhatApp('${deviceId}','${key}')">Cập nhật</button>
+                <button class="btn-delete" onclick="xoaApp('${deviceId}','${key}')">Xóa</button>
+                <button class="btn-stop" onclick="dungNgay('${deviceId}','${key}')">Dừng ngay</button>
+              </div>
+            </div>
+          `;
+        });
+        html += `</div>`;
+      }
+
+      // --- In các Config khác (EndHour, StartHour...) ---
+      if (data.Config) {
+        html += `<div class="config-block"><h3>⚙ Cấu hình chung</h3><ul>`;
+        Object.keys(data.Config).forEach((k) => {
+          if (k !== "GamesAllowed") {
+            html += `<li><b>${k}:</b> ${data.Config[k]}</li>`;
+          }
+        });
+        html += `</ul></div>`;
+      }
+
+      html += `</div>`;
+      infoDiv.innerHTML = html;
+    });
+}
+
+// Demo function (bạn gắn Firebase xử lý sau)
+function capNhatApp(deviceId, key){ alert("Cập nhật "+key+" của "+deviceId); }
+function xoaApp(deviceId, key){ alert("Xóa "+key+" của "+deviceId); }
+function dungNgay(deviceId, key){ alert("Dừng ngay "+key+" của "+deviceId); }
+
+  function themDevice() {
+    let deviceId = document.getElementById("newDeviceId").value.trim();
+    let deviceName = document.getElementById("newDeviceName").value.trim();
+    if (!deviceId) { alert("⚠ Nhập Device ID!"); return; }
+    let ref = firebase.database().ref("users/" + MyUserID + "/devices/" + deviceId);
+    ref.set({
+      name: deviceName || "Thiết bị không tên",
+      createdAt: new Date().toISOString(),
+      status: "active"
+    }).then(() => {
+      document.getElementById("newDeviceId").value = "";
+      document.getElementById("newDeviceName").value = "";
+      alert("✅ Đã thêm thiết bị!");
+    });
+  }
+</script>
+
+
+
+<script>
+let deferredPrompt;
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById("installBtn").style.display = "inline-block";
 });
 
-
-
-function hienThiUserTheoUID(uid) {
-  document.getElementById("loginForm").style.display = "none";
-  document.getElementById("userInfo").style.display = "block";
-
-  // Bắt đầu lắng nghe realtime cho user này
-  listenUserRealtime(uid);
-      console.log("UID hiện tại: trong hàm hiển thị User ID");
-}
-
-// Hàm tạo listener realtime cho user
-function listenUserRealtime(uid) {
-  if (currentUserRef) {
-    currentUserRef.off();
-  }
-
-  currentUserRef = firebase.database().ref("users/" + uid);
-  currentUserRef.on("value", function (snapshot) {
-    const userData = snapshot.val();
-    if (userData) {
-      console.log("📌 Dữ liệu user:", userData);
-      hienThiUser(userData);
-      hienThiConfigUser(userData);
-      localStorage.setItem("loggedUser", JSON.stringify(userData));
+document.getElementById("installBtn").addEventListener("click", async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      console.log("✅ User accepted A2HS prompt");
     } else {
-      console.warn("⚠ Không tìm thấy dữ liệu user:", uid);
+      console.log("❌ User dismissed A2HS prompt");
     }
-  });
-}
-
-
-
-function dangNhapTuFirebase() {
-  var email = document.getElementById("checkUserName").value.trim();
-  var password = document.getElementById("checkPassword").value.trim();
-  var ketQuaElem = document.getElementById("ketQua");
-
-  if (!email || !password) {
-    ketQuaElem.innerText = "⚠ Vui lòng nhập đầy đủ thông tin.";
-    return;
+    deferredPrompt = null;
+    document.getElementById("installBtn").style.display = "none";
   }
-
-  firebase.auth().signInWithEmailAndPassword(email, password)
-    .then((userCredential) => {
-      ketQuaElem.innerText = "✅ Đăng nhập thành công!";
-      const user = userCredential.user;
-      hienThiUserTheoUID(user.uid);
- console.log("a đến hiển thi config");
-    })
-    .catch((error) => {
-      ketQuaElem.innerText = "❌ " + error.message;
-    });
-}
-function hienThiUser(userData) {
-  const welcomeElem = document.getElementById("welcomeUser");
-  welcomeElem.innerHTML = `👋 Xin chào <b>${userData.UserName}</b><br>📧 ${userData.Email}`;
-
-  const currentUser = firebase.auth().currentUser;
-  if (!currentUser) {
-    alert("Không tìm thấy UID người dùng. Vui lòng đăng nhập lại.");
-    return;
-  }
-  const uid = currentUser.uid;
-
-  const btnStopPC = document.getElementById("btnStopPC");
-
-  // Gỡ bỏ tất cả event listener click cũ
-  btnStopPC.replaceWith(btnStopPC.cloneNode(true));
-  const newBtnStopPC = document.getElementById("btnStopPC");
-
-  let stopPCState = false;
-
-  // Lắng nghe StopPC realtime
-  firebase.database()
-    .ref(`/users/${uid}/Config/StopPC`)
-    .on("value", snapshot => {
-      stopPCState = snapshot.val() === true;
-      newBtnStopPC.textContent = stopPCState ? "Bỏ Tắt Máy Tính" : "Tắt Máy Tính";
-    });
-
-  // Nút Toggle StopPC
-  newBtnStopPC.addEventListener("click", async () => {
-    try {
-      if (stopPCState) {
-        await firebase.database()
-          .ref(`/users/${uid}/Config/StopPC`)
-          .set(false);
-      } else {
-        await firebase.database()
-          .ref(`/users/${uid}/Config/StopPC`)
-          .set(true);
-
-        setTimeout(async () => {
-          await firebase.database()
-            .ref(`/users/${uid}/Config/StopPC`)
-            .set(false);
-        }, 5 * 60 * 1000);
-      }
-    } catch (err) {
-      alert("❌ Lỗi khi xử lý lệnh: " + err.message);
-    }
-  });
-}
-
-
-
-
-
-function hienThiConfigUser(userData) {
-  let configList = document.getElementById("configInfo");
-  configList.innerHTML = "";
-
-  if (!userData.Config) {
-    configList.innerHTML = "<li>Chưa có cấu hình nào.</li>";
-    return;
-  }
-
-  const propLabels = {
-    CooldownMinutes: "Thời gian chờ sử dụng lại sau dừng",
-    CurrentSessionMinutes: "Thời gian sử dụng hiện tại",
-    LaunchesToday: "Số lần sử dụng hôm nay",
-    MaxLaunchesPerDay: "Giới hạn số lần sử dụng 1 ngày",
-    MaxMinutes: "Thời gian tối đa mỗi lần",
-    Name: "Tên phần mềm",
-    UsedMinutesToday: "Tổng thời gian sử dụng hôm nay",
-    TempStop: "Tạm dừng",
-    StartHour: "Giờ bắt đầu",
-    EndHour: "Giờ kết thúc"
-  };
-
-  const allKeys = Object.keys(userData.Config);
-  const otherKeys = allKeys.filter(k => k !== "GamesAllowed");
-  const finalKeys = [...otherKeys, "GamesAllowed"];
-
-  finalKeys.forEach((key) => {
-    let value = userData.Config[key];
-
-    // Nếu là mảng (GamesAllowed)
-    if (Array.isArray(value)) {
-      let li = document.createElement("li");
-      li.innerHTML = `<strong>${propLabels[key] || key}:</strong>`;
-      let subList = document.createElement("div");
-      subList.style.marginLeft = "15px";
-
-      value.forEach((item, index) => {
-        let gameBox = document.createElement("div");
-        gameBox.style.background = "#fff";
-        gameBox.style.padding = "10px";
-        gameBox.style.margin = "10px 0";
-        gameBox.style.borderRadius = "8px";
-        gameBox.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
-
-        let gameTitle = document.createElement("div");
-        gameTitle.textContent = `${index + 1}. ${item.Name || "Không tên"}`;
-        gameTitle.style.fontWeight = "bold";
-        gameTitle.style.marginBottom = "6px";
-        gameBox.appendChild(gameTitle);
-
-        // Hiển thị các thuộc tính
-        for (let prop in item) {
-          let attr = document.createElement("div");
-          attr.textContent = `${propLabels[prop] || prop}: ${item[prop]}`;
-          attr.style.fontSize = "14px";
-          attr.style.margin = "2px 0";
-          gameBox.appendChild(attr);
-        }
-
-        // Nút thao tác
-        let btnContainer = document.createElement("div");
-        btnContainer.style.marginTop = "8px";
-
-        let currentUID = firebase.auth().currentUser?.uid || "";
-
-        // Cập nhật
-        let btnUpdate = document.createElement("button");
-        btnUpdate.textContent = "Cập nhật";
-        btnUpdate.style.marginRight = "6px";
-        btnUpdate.onclick = () => {
-          const params = new URLSearchParams({ uid: currentUID, key, index });
-          window.location.href = `update.html?${params.toString()}`;
-        };
-
-        // Xóa
-        let btnDelete = document.createElement("button");
-        btnDelete.textContent = "Xóa";
-        btnDelete.style.marginRight = "6px";
-        btnDelete.onclick = () => {
-          if (!confirm("Bạn có chắc muốn xóa game này?")) return;
-          let path = `users/${currentUID}/Config/${key}`;
-          firebase.database().ref(path).once("value").then(snapshot => {
-            let arr = Object.values(snapshot.val() || []);
-            arr.splice(index, 1);
-            return firebase.database().ref(path).set(arr);
-          }).then(() => {
-            alert("✅ Đã xóa thành công!");
-          }).catch(err => {
-            alert("❌ Lỗi khi xóa: " + err.message);
-          });
-        };
-
-        // Dừng/Chạy lại
-        let btnStop = document.createElement("button");
-        let isStopped = item.TempStop === true;
-        updateStopBtn(btnStop, isStopped);
-
-        btnStop.onclick = async () => {
-          if (!isStopped) {
-            await firebase.database().ref(`users/${currentUID}/Config/${key}/${index}/TempStop`).set(true);
-            isStopped = true;
-            updateStopBtn(btnStop, true);
-            setTimeout(async () => {
-              await firebase.database().ref(`users/${currentUID}/Config/${key}/${index}/TempStop`).set(false);
-              isStopped = false;
-              updateStopBtn(btnStop, false);
-            }, 30 * 60 * 1000);
-          } else {
-            await firebase.database().ref(`users/${currentUID}/Config/${key}/${index}/TempStop`).set(false);
-            isStopped = false;
-            updateStopBtn(btnStop, false);
-          }
-        };
-
-        btnContainer.appendChild(btnUpdate);
-        btnContainer.appendChild(btnDelete);
-        btnContainer.appendChild(btnStop);
-        gameBox.appendChild(btnContainer);
-        subList.appendChild(gameBox);
-      });
-
-      li.appendChild(subList);
-      configList.appendChild(li);
-    }
-    // Nếu là giá trị thường
-    else {
-      let li = document.createElement("li");
-      li.textContent = `${propLabels[key] || key}: ${value}`;
-      configList.appendChild(li);
-    }
-  });
-
-  function updateStopBtn(btn, stopped) {
-    if (stopped) {
-      btn.textContent = "Chạy lại";
-      btn.style.background = "#2980b9";
-      btn.style.color = "#fff";
-    } else {
-      btn.textContent = "Dừng ngay";
-      btn.style.background = "#c0392b";
-      btn.style.color = "#fff";
-    }
-  }
-}
-
-
- 
-function dangXuat() {
-  // Tắt listener realtime khi đăng xuất
-  if (currentUserRef) {
-    currentUserRef.off();
-    currentUserRef = null;
-  }
-
-  localStorage.removeItem("loggedUser");
-  document.getElementById("loginForm").style.display = "block";
-  document.getElementById("userInfo").style.display = "none";
-}
-
-
-
-
+});
 </script>
-  <script src="script.js"></script>
-
- <!-- ✅ Script xử lý A2HS -->
-  <script>
-    let deferredPrompt;
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      // Ngăn trình duyệt hiển thị banner mặc định
-      e.preventDefault();
-      deferredPrompt = e;
-
-      // Hiện nút
-      const btn = document.getElementById('a2hsBtn');
-      btn.style.display = 'inline-block';
-
-      btn.addEventListener('click', () => {
-        // Hiện hộp thoại cài đặt
-        deferredPrompt.prompt();
-
-        // Chờ người dùng phản hồi
-        deferredPrompt.userChoice.then((choiceResult) => {
-          if (choiceResult.outcome === 'accepted') {
-            console.log('✅ Người dùng đã chấp nhận A2HS');
-          } else {
-            console.log('❌ Người dùng đã từ chối A2HS');
-          }
-          deferredPrompt = null;
-        });
-      });
-    });
-  </script>
 
 
 </body>
