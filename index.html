@@ -312,7 +312,10 @@ document.getElementById("welcomeMsg").textContent = msg;
     };
   }
 
-// Hàm hiển thị chi tiết thiết bị
+// Biến toàn cục để lưu ref hiện tại (để tắt listener khi đổi thiết bị)
+let currentDeviceRef = null;
+
+// Hàm hiển thị chi tiết thiết bị (realtime)
 function hienThiThongTin() {
   let select = document.getElementById("deviceList");
   let deviceId = select.value;
@@ -323,74 +326,85 @@ function hienThiThongTin() {
     return;
   }
 
-  firebase.database()
-    .ref("users/" + MyUserID + "/devices/" + deviceId)
-    .once("value")
-    .then((snapshot) => {
-      let data = snapshot.val();
-      if (!data) { infoDiv.innerHTML = "⚠ Không tìm thấy dữ liệu thiết bị!"; return; }
+  // Nếu trước đó đã theo dõi thiết bị khác thì tắt listener
+  if (currentDeviceRef) {
+    currentDeviceRef.off("value");
+  }
 
-      let html = `<div class="info-card">`;
+  // Tạo ref mới cho thiết bị này
+  currentDeviceRef = firebase.database()
+    .ref("users/" + MyUserID + "/devices/" + deviceId);
 
-      // --- Info cơ bản ---
-      if (data.Info) {
+  // Theo dõi realtime
+  currentDeviceRef.on("value", (snapshot) => {
+    let data = snapshot.val();
+    if (!data) { 
+      infoDiv.innerHTML = "⚠ Không tìm thấy dữ liệu thiết bị!"; 
+      return; 
+    }
+
+    let html = `<div class="info-card">`;
+
+    // --- Info cơ bản ---
+    if (data.Info) {
+      html += `
+        <div class="info-block">
+          <h3>📌 Thông tin thiết bị</h3>
+          <table class="info-table">
+            <tr><td><b>Tên thiết bị</b></td><td>${data.Info.DeviceName}</td></tr>
+            <tr><td><b>Hiển thị</b></td><td>${data.Info.DisplayName}</td></tr>
+            <tr><td><b>Địa chỉ IP</b></td><td>${data.Info.IPAddress}</td></tr>
+            <tr><td><b>Hệ điều hành</b></td><td>${data.Info.OSVersion}</td></tr>
+            <tr><td><b>Người dùng</b></td><td>${data.Info.UserName}</td></tr>
+          </table>
+        </div>
+      `;
+    }
+
+    // --- GamesAllowed riêng ---
+    if (data.Config && data.Config.GamesAllowed) {
+      html += `<div class="config-block"><h3>🎮 Games Allowed</h3>`;
+      Object.keys(data.Config.GamesAllowed).forEach((key, idx) => {
+        let g = data.Config.GamesAllowed[key];
         html += `
-          <div class="info-block">
-            <h3>📌 Thông tin thiết bị</h3>
-            <table class="info-table">
-              <tr><td><b>Tên thiết bị</b></td><td>${data.Info.DeviceName}</td></tr>
-              <tr><td><b>Hiển thị</b></td><td>${data.Info.DisplayName}</td></tr>
-              <tr><td><b>Địa chỉ IP</b></td><td>${data.Info.IPAddress}</td></tr>
-              <tr><td><b>Hệ điều hành</b></td><td>${data.Info.OSVersion}</td></tr>
-              <tr><td><b>Người dùng</b></td><td>${data.Info.UserName}</td></tr>
-            </table>
+          <div class="app-card">
+            <h4>${idx+1}. ${g.Name || "Ứng dụng"}</h4>
+            <div class="app-info">
+              <p>⏱ Thời gian sử dụng hiện tại: ${g.CurrentSessionMinutes}</p>
+              <p>🔄 Thời gian chờ: ${g.CooldownMinutes}</p>
+              <p>📅 Số lần hôm nay: ${g.LaunchesToday}</p>
+              <p>📌 Giới hạn số lần/ngày: ${g.MaxLaunchesPerDay}</p>
+              <p>⏳ Giới hạn phút: ${g.MaxMinutes}</p>
+              <p>🚫 Tạm dừng: ${g.TempStop}</p>
+              <p>🕒 Đã dùng hôm nay: ${g.UsedMinutesToday}</p>
+            </div>
+            <div class="app-actions">
+              <button class="btn-update" onclick="capNhatApp('${deviceId}','${key}')">Cập nhật</button>
+              <button class="btn-delete" onclick="xoaApp('${deviceId}','${key}')">Xóa</button>
+              <button class="btn-stop" onclick="dungNgay('${deviceId}','${key}')">Dừng ngay</button>
+            </div>
           </div>
         `;
-      }
-
-      // --- GamesAllowed riêng ---
-      if (data.Config && data.Config.GamesAllowed) {
-        html += `<div class="config-block"><h3>🎮 Games Allowed</h3>`;
-        Object.keys(data.Config.GamesAllowed).forEach((key, idx) => {
-          let g = data.Config.GamesAllowed[key];
-          html += `
-            <div class="app-card">
-              <h4>${idx+1}. ${g.Name || "Ứng dụng"}</h4>
-              <div class="app-info">
-                <p>⏱ Thời gian sử dụng hiện tại: ${g.CurrentSessionMinutes}</p>
-                <p>🔄 Thời gian chờ: ${g.CooldownMinutes}</p>
-                <p>📅 Số lần hôm nay: ${g.LaunchesToday}</p>
-                <p>📌 Giới hạn số lần/ngày: ${g.MaxLaunchesPerDay}</p>
-                <p>⏳ Giới hạn phút: ${g.MaxMinutes}</p>
-                <p>🚫 Tạm dừng: ${g.TempStop}</p>
-                <p>🕒 Đã dùng hôm nay: ${g.UsedMinutesToday}</p>
-              </div>
-              <div class="app-actions">
-                <button class="btn-update" onclick="capNhatApp('${deviceId}','${key}')">Cập nhật</button>
-                <button class="btn-delete" onclick="xoaApp('${deviceId}','${key}')">Xóa</button>
-                <button class="btn-stop" onclick="dungNgay('${deviceId}','${key}')">Dừng ngay</button>
-              </div>
-            </div>
-          `;
-        });
-        html += `</div>`;
-      }
-
-      // --- In các Config khác (EndHour, StartHour...) ---
-      if (data.Config) {
-        html += `<div class="config-block"><h3>⚙ Cấu hình chung</h3><ul>`;
-        Object.keys(data.Config).forEach((k) => {
-          if (k !== "GamesAllowed") {
-            html += `<li><b>${k}:</b> ${data.Config[k]}</li>`;
-          }
-        });
-        html += `</ul></div>`;
-      }
-
+      });
       html += `</div>`;
-      infoDiv.innerHTML = html;
-    });
+    }
+
+    // --- In các Config khác (EndHour, StartHour...) ---
+    if (data.Config) {
+      html += `<div class="config-block"><h3>⚙ Cấu hình chung</h3><ul>`;
+      Object.keys(data.Config).forEach((k) => {
+        if (k !== "GamesAllowed") {
+          html += `<li><b>${k}:</b> ${data.Config[k]}</li>`;
+        }
+      });
+      html += `</ul></div>`;
+    }
+
+    html += `</div>`;
+    infoDiv.innerHTML = html;
+  });
 }
+
 
 // Demo function (bạn gắn Firebase xử lý sau)
 function capNhatApp(deviceId, key){ alert("Cập nhật "+key+" của "+deviceId); }
