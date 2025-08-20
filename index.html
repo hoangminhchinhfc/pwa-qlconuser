@@ -458,20 +458,34 @@ function xoaApp(deviceId, key, index) {
     }
   });
 }
-
-// ---- Hàm dừng ngay ----
 function dungNgay(deviceId, key, index) {
-  firebase.database()
-    .ref(`users/${MyUserID}/devices/${deviceId}/Config/${key}/${index}/TempStop`)
-    .set(true)  // đặt trạng thái dừng ngay
-    .then(() => {
-      alert("App đã bị dừng ngay!");
-    })
-    .catch((err) => {
-      console.error(err);
-      alert("Lỗi khi cập nhật trạng thái!");
-    });
+  const path = `users/${MyUserID}/devices/${deviceId}/Config/${key}/${index}`;
+  const ref = firebase.database().ref(path);
+
+  ref.once("value").then(snapshot => {
+    const data = snapshot.val();
+
+    if (data && data.TempStop === true) {
+      // Nếu đang true -> tắt ngay
+      ref.update({
+        TempStop: false,
+        ExpireAt: null
+      }).then(() => {
+        alert("App đã được bật lại!");
+      });
+    } else {
+      // Nếu đang false hoặc chưa có -> bật tạm ngừng 3 phút
+      const expireAt = Date.now() + 180000; // 3 phút
+      ref.update({
+        TempStop: true,
+        ExpireAt: expireAt
+      }).then(() => {
+        alert("App đã bị dừng ngay trong 3 phút!");
+      });
+    }
+  });
 }
+
 
 
 
