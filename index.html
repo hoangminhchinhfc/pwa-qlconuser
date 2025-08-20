@@ -314,7 +314,6 @@ document.getElementById("welcomeMsg").textContent = msg;
 
 // Biến toàn cục để lưu ref hiện tại (để tắt listener khi đổi thiết bị)
 let currentDeviceRef = null;
-
 // Hàm hiển thị chi tiết thiết bị (realtime)
 function hienThiThongTin() {
   let select = document.getElementById("deviceList");
@@ -350,13 +349,13 @@ function hienThiThongTin() {
       html += `
         <div class="info-block">
           <h3>📌 Thông tin thiết bị</h3>
-          <table class="info-table">
-            <tr><td><b>Tên thiết bị</b></td><td>${data.Info.DeviceName}</td></tr>
-            <tr><td><b>Hiển thị</b></td><td>${data.Info.DisplayName}</td></tr>
-            <tr><td><b>Địa chỉ IP</b></td><td>${data.Info.IPAddress}</td></tr>
-            <tr><td><b>Hệ điều hành</b></td><td>${data.Info.OSVersion}</td></tr>
-            <tr><td><b>Người dùng</b></td><td>${data.Info.UserName}</td></tr>
-          </table>
+      
+            <p><b>Tên thiết bị</b>${data.Info.DeviceName}</p>
+            <p><b>Hiển thị</b>${data.Info.DisplayName}</p>
+            <p><b>Địa chỉ IP</b>${data.Info.IPAddress}</p>
+            <p><b>Hệ điều hành</b>${data.Info.OSVersion}</p>
+            <p><b>Người dùng</b>${data.Info.UserName}</p>
+        
         </div>
       `;
     }
@@ -368,7 +367,10 @@ function hienThiThongTin() {
         let g = data.Config.GamesAllowed[key];
         html += `
           <div class="app-card">
-            <h4>${idx+1}. ${g.Name || "Ứng dụng"}</h4>
+            <h4>${idx+1}. ${g.Name || "Ứng dụng"}</h4>              <button class="btn-stop" 
+                onclick="dungNgay('${deviceId}','GamesAllowed',${idx})">
+                Dừng ngay
+              </button>
             <div class="app-info">
               <p>⏱ Thời gian sử dụng hiện tại: ${g.CurrentSessionMinutes}</p>
               <p>🔄 Thời gian chờ: ${g.CooldownMinutes}</p>
@@ -379,9 +381,15 @@ function hienThiThongTin() {
               <p>🕒 Đã dùng hôm nay: ${g.UsedMinutesToday}</p>
             </div>
             <div class="app-actions">
-              <button class="btn-update" onclick="capNhatApp('${deviceId}','${key}')">Cập nhật</button>
-              <button class="btn-delete" onclick="xoaApp('${deviceId}','${key}')">Xóa</button>
-              <button class="btn-stop" onclick="dungNgay('${deviceId}','${key}')">Dừng ngay</button>
+              <button class="btn-update" 
+                onclick="capNhatApp('${deviceId}','GamesAllowed',${idx})">
+                Cập nhật
+              </button>
+              <button class="btn-delete" 
+                onclick="xoaApp('${deviceId}','GamesAllowed',${idx})">
+                Xóa
+              </button>
+
             </div>
           </div>
         `;
@@ -407,9 +415,66 @@ function hienThiThongTin() {
 
 
 // Demo function (bạn gắn Firebase xử lý sau)
-function capNhatApp(deviceId, key){ alert("Cập nhật "+key+" của "+deviceId); }
-function xoaApp(deviceId, key){ alert("Xóa "+key+" của "+deviceId); }
-function dungNgay(deviceId, key){ alert("Dừng ngay "+key+" của "+deviceId); }
+// ---- Hàm mở trang update ----
+// Hàm chuyển hướng
+function capNhatApp(deviceId, key, index) {
+  window.location.href = `update.html?uid=${MyUserID}&deviceId=${deviceId}&key=${key}&index=${index}`;
+}
+
+// ---- Hàm xóa app ----
+function xoaApp(deviceId, key, index) {
+  const uid = MyUserID; // UID đang đăng nhập
+  const listRef = firebase.database().ref(`users/${uid}/devices/${deviceId}/Config/${key}`);
+
+  if (!confirm("Bạn có chắc muốn xóa game này?")) return;
+
+  listRef.transaction((current) => {
+    // Chuẩn hóa về mảng để re-index
+    let arr = [];
+    if (Array.isArray(current)) {
+      arr = current.slice();
+    } else if (current && typeof current === "object") {
+      arr = Object.values(current);
+    } else {
+      return current; // không có gì để xóa
+    }
+
+    if (index < 0 || index >= arr.length) return current; // index không hợp lệ
+
+    // Xóa và compact lại
+    arr.splice(index, 1);
+    arr = arr.filter(v => v !== null && v !== undefined);
+
+    // Trả về mảng mới => Firebase sẽ ghi đè & index = 0..n-1
+    return arr;
+  }, (error, committed) => {
+    if (error) {
+      alert("❌ Lỗi khi xóa: " + error.message);
+    } else if (!committed) {
+      alert("⚠ Không có thay đổi (có thể index không hợp lệ).");
+    } else {
+      alert("✅ Đã xóa và đánh lại số thứ tự!");
+      // Không cần reload: listener realtime trong hienThiThongTin() sẽ tự render lại
+    }
+  });
+}
+
+// ---- Hàm dừng ngay ----
+function dungNgay(deviceId, key, index) {
+  firebase.database()
+    .ref(`users/${MyUserID}/devices/${deviceId}/Config/${key}/${index}/TempStop`)
+    .set(true)  // đặt trạng thái dừng ngay
+    .then(() => {
+      alert("App đã bị dừng ngay!");
+    })
+    .catch((err) => {
+      console.error(err);
+      alert("Lỗi khi cập nhật trạng thái!");
+    });
+}
+
+
+
 
   function themDevice() {
     let deviceId = document.getElementById("newDeviceId").value.trim();
