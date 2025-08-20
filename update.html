@@ -29,10 +29,6 @@
     outline:none; box-sizing:border-box;
   }
   input:focus{ border-color:#6a11cb; }
-  .row{
-    display:flex; gap:10px; align-items:center;
-  }
-  .row .grow{ flex:1; }
   .btn{
     display:inline-block; width:100%; padding:12px; margin-top:16px;
     border:none; border-radius:10px; color:#fff; font-weight:600; cursor:pointer;
@@ -44,7 +40,6 @@
     background:#eef2ff; color:#3b5bdb;
   }
   .error{ color:#c0392b; font-weight:700; }
-  .ok{ color:#27ae60; font-weight:700; }
 </style>
 </head>
 <body>
@@ -67,27 +62,35 @@
   };
   firebase.initializeApp(firebaseConfig);
 
-  // === Query params ===
+  // === Lấy query params ===
   const qp = new URLSearchParams(window.location.search);
-  const uid   = qp.get("uid");          // owner uid
-  const key   = qp.get("key");          // e.g. "GamesAllowed"
-  const index = qp.get("index");        // e.g. "0" (string)
-  const idxKey = String(index);         // đảm bảo là chuỗi
+  const uid    = qp.get("uid");    // userName
+  const device = qp.get("deviceId"); // deviceId
+  const key    = qp.get("key");    // "GamesAllowed"
+  const index  = qp.get("index");  // vị trí phần tử trong mảng
 
   const formArea = document.getElementById("formArea");
 
-  if (!uid || !key || index === null) {
-    formArea.innerHTML = `<div class="error">❌ Thiếu tham số (uid/key/index) trên URL.</div>`;
+  if (!uid || !device || !key || index === null) {
+    formArea.innerHTML = `<div class="error">
+❌ Thiếu tham số (uid/device/key/index) trên URL .
+❌ Thiếu tham số trên URL:<br>
+      uid: ${uid || "<b style='color:red'>chưa có</b>"}<br>
+      device: ${device || "<b style='color:red'>chưa có</b>"}<br>
+      key: ${key || "<b style='color:red'>chưa có</b>"}<br>
+      index: ${(index !== null) ? index : "<b style='color:red'>chưa có</b>"}
+</div>`;
   } else {
-    // Chờ xác thực
+    // Kiểm tra đăng nhập
     firebase.auth().onAuthStateChanged(async (user) => {
       if (!user) {
         formArea.innerHTML = `
           <div class="error">⚠ Bạn chưa đăng nhập.</div>
-          <button class="btn btn--ghost" onclick="window.location.href='./'">⬅ Quay lại trang chính</button>
+          <button class="btn btn--ghost" onclick="window.location.href='./'">⬅ Quay lại</button>
         `;
         return;
       }
+
       if (user.uid !== uid) {
         formArea.innerHTML = `
           <div class="error">⛔ Không có quyền. UID hiện tại (${user.uid}) khác UID trên URL (${uid}).</div>
@@ -96,7 +99,8 @@
         return;
       }
 
-      const refPath = `users/${uid}/Config/${key}/${idxKey}`;
+      // đường dẫn tới item cần sửa
+      const refPath = `users/${uid}/devices/${device}/Config/${key}/${index}`;
       const itemRef = firebase.database().ref(refPath);
 
       try {
@@ -106,7 +110,6 @@
           formArea.innerHTML = `<div class="error">❌ Không tìm thấy dữ liệu tại <code>${refPath}</code>.</div>`;
           return;
         }
-
         // render form
         renderForm(data, refPath);
       } catch (err) {
@@ -115,7 +118,7 @@
     });
   }
 
-  // === UI + Save ===
+  // === Render form + Save ===
   function renderForm(data, refPath){
     formArea.innerHTML = "";
 
@@ -123,14 +126,12 @@
     const isBool = v => typeof v === "boolean";
     const isNum  = v => typeof v === "number";
 
-    // Tạo input theo đúng kiểu dữ liệu gốc
     Object.keys(data).forEach((prop) => {
       const label = document.createElement("label");
       label.textContent = prop;
       formArea.appendChild(label);
 
       let input;
-
       if (isBool(data[prop])) {
         input = document.createElement("input");
         input.type = "checkbox";
@@ -162,7 +163,7 @@
       });
 
       try {
-        await firebase.database().ref().update(updates);   // multi-path update
+        await firebase.database().ref().update(updates);
         saveBtn.textContent = "✅ Đã cập nhật!";
         saveBtn.style.background = "linear-gradient(135deg,#2ecc71,#27ae60)";
         setTimeout(()=> window.location.href = "./", 1200);
